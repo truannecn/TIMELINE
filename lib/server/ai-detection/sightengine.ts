@@ -16,7 +16,7 @@ export class SightengineDetector implements AIDetector {
 
   async checkImage(imageBytes: Buffer, filename: string): Promise<DetectionResult> {
     const formData = new FormData();
-    formData.append("media", new Blob([imageBytes]), filename);
+    formData.append("media", new Blob([new Uint8Array(imageBytes)]), filename);
     formData.append("models", "genai");
     formData.append("api_user", this.apiUser);
     formData.append("api_secret", this.apiSecret);
