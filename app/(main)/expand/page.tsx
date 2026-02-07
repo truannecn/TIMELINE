@@ -22,11 +22,11 @@ export default async function ExpandPage(): Promise<JSX.Element> {
   const { data: followingThreads } = user
     ? await supabase
         .from("user_threads")
-        .select("thread:threads(id, name)")
+        .select("thread:threads!user_threads_thread_id_fkey(id, name)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(6)
-    : { data: null };
+    : { data: [] as { thread: { id: string; name: string | null } | null }[] };
 
   // Get most liked works by counting likes per work
   const { data: likedWorkIds } = await supabase

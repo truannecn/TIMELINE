@@ -39,7 +39,6 @@ export default function ThreadRightSidebar({
 }: ThreadRightSidebarProps): JSX.Element {
   const tint = getThreadTint(thread.name);
   const glassBackground = hexToRgba(tint, 0.3);
-  const threadInitial = (thread.name || "t").charAt(0).toUpperCase();
   return (
     <aside className="hidden lg:block lg:self-start lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:mb-6">
       <div
@@ -62,44 +61,25 @@ export default function ThreadRightSidebar({
               {creativesCount.toLocaleString()} creatives
             </p>
           </div>
-          <div className="flex flex-col items-end gap-3">
-            <div
-              className="flex h-[58px] w-[58px] items-center justify-center rounded-md text-sm text-white"
-              style={{ backgroundColor: tint }}
-            >
-              {thread.creator?.avatar_url ? (
-                <img
-                  src={thread.creator.avatar_url}
-                  alt={thread.creator.display_name || thread.creator.username || "Thread creator"}
-                  className="h-full w-full rounded-md object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <span className="font-[family-name:var(--font-jetbrains-mono)]">
-                  {threadInitial}
-                </span>
-              )}
-            </div>
-            <ThreadFollowButton
-              threadId={thread.id}
-              isFollowing={isFollowing}
-              tint={tint}
-            />
-          </div>
+          <ThreadFollowButton
+            threadId={thread.id}
+            isFollowing={isFollowing}
+            tint={tint}
+          />
         </div>
 
         <div className="mt-8">
-          <p className="font-['Jeju_Myeongjo',serif] text-base">description</p>
-          <p className="mt-3 whitespace-pre-wrap text-sm text-black/80 font-['Jeju_Myeongjo',serif]">
+          <p className="font-['Inria_Serif',serif] text-base">description</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-black/80 font-['Inria_Serif',serif]">
             {thread.description || "no description yet."}
           </p>
-          <p className="mt-4 text-xs text-black/70 font-['Jeju_Myeongjo',serif]">
+          <p className="mt-4 text-xs text-black/70 font-['Inria_Serif',serif]">
             created {createdLabel}
           </p>
         </div>
 
         <div className="mt-8">
-          <p className="font-['Jeju_Myeongjo',serif] text-base">
+          <p className="font-['Inria_Serif',serif] text-base">
             trending posts from this week
           </p>
           {trendingWorks.length > 0 ? (
@@ -125,7 +105,7 @@ export default function ThreadRightSidebar({
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-black/60 font-['Jeju_Myeongjo',serif]">
+            <p className="mt-3 text-sm text-black/60 font-['Inria_Serif',serif]">
               no trending posts yet
             </p>
           )}

@@ -5,8 +5,7 @@ import { revalidatePath } from "next/cache";
 
 export async function createThread(
   name: string,
-  description: string,
-  photoUrl: string | null
+  description: string
 ): Promise<{ success: boolean; error?: string; threadId?: string }> {
   const supabase = await createClient();
 
@@ -40,7 +39,6 @@ export async function createThread(
     .insert({
       name: name.trim(),
       description: description && description.trim().length > 0 ? description.trim() : null,
-      photo_url: photoUrl,
       created_by: user.id,
     })
     .select("id")

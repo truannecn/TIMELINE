@@ -26,7 +26,7 @@ export default function PortfolioCard({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl border border-white/60 bg-[rgba(95,102,107,0.85)] shadow-[0px_18px_35px_rgba(0,0,0,0.12)] backdrop-blur-xl ${
+      className={`relative overflow-hidden rounded-3xl border border-white/60 bg-[rgba(110,117,122,0.85)] shadow-[0px_18px_35px_rgba(0,0,0,0.12)] backdrop-blur-xl ${
         className || ""
       }`}
     >

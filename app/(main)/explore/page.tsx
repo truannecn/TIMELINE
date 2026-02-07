@@ -47,7 +47,8 @@ export default async function ExplorePage({
       content,
       created_at,
       author_id,
-      author:profiles!works_author_id_fkey(id, username, display_name, avatar_url)
+      author:profiles!works_author_id_fkey(id, username, display_name, avatar_url),
+      primary_thread:threads!works_primary_thread_id_fkey(id, name)
     `
     )
     .order("created_at", { ascending: false })
@@ -131,7 +132,8 @@ export default async function ExplorePage({
             "following:profiles!follows_following_id_fkey(id, username, display_name, avatar_url)"
           )
           .eq("follower_id", user.id)
-          .limit(6),
+          .order("created_at", { ascending: false })
+          .limit(3),
         supabase
           .from("follows")
           .select("*", { count: "exact", head: true })
@@ -161,6 +163,7 @@ export default async function ExplorePage({
   const workItems = (sortedWorks || []).map((work) => ({
     ...work,
     author: Array.isArray(work.author) ? work.author[0] : work.author,
+    primary_thread: Array.isArray(work.primary_thread) ? work.primary_thread[0] : work.primary_thread,
     likeCount: likeCountMap.get(work.id) || 0,
     isLiked: userLikedSet.has(work.id),
   }));
@@ -182,20 +185,31 @@ export default async function ExplorePage({
             <PortfolioCard profile={currentProfile} />
 
             <div className="space-y-3 text-sm">
-              <p className="text-black/70">following</p>
+              <p className="font-bold text-black/70">following</p>
               {followingItems.length > 0 ? (
-                <ul className="space-y-2">
-                  {followingItems.map((profile) => (
-                    <li key={profile.id}>
-                      <Link
-                        href={profile.username ? `/${profile.username}` : "#"}
-                        className="hover:text-black/80 transition-colors"
-                      >
-                        {profile.username ? `@${profile.username}` : profile.display_name || "unknown"}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="space-y-2">
+                    {followingItems.map((profile) => (
+                      <li key={profile.id}>
+                        <Link
+                          href={profile.username ? `/${profile.username}` : "#"}
+                          className="hover:text-black/80 transition-colors"
+                        >
+                          {profile.username ? `@${profile.username}` : profile.display_name || "unknown"}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  {followingCount > 3 && (
+                    <Link
+                      href="/profile"
+                      className="text-black/60 hover:text-black transition-colors inline-flex items-center gap-1"
+                    >
+                      <span>&gt;</span>
+                      <span>see all</span>
+                    </Link>
+                  )}
+                </>
               ) : (
                 <p className="text-black/50">no follows yet</p>
               )}
@@ -266,7 +280,7 @@ export default async function ExplorePage({
             </div>
 
             <div className="space-y-4">
-              <p className="text-sm text-black/70">creatives for you</p>
+              <p className="text-sm font-bold text-black/70">creatives for you</p>
               {creativeItems.length > 0 ? (
                 <ul className="space-y-3 text-sm">
                   {creativeItems.map((item) => {
