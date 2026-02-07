@@ -8,7 +8,7 @@ interface WorkCardProps {
     image_url?: string | null;
     work_type: "image" | "essay";
     description?: string | null;
-    primary_interest?: {
+    primary_thread?: {
       id: string;
       name: string;
       slug: string;
@@ -42,9 +42,9 @@ export function WorkCard({
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
-          {(work.primary_interest?.name || isEssay) && (
+          {(work.primary_thread?.name || isEssay) && (
             <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              {work.primary_interest?.name || "Essay"}
+              {work.primary_thread?.name || "Essay"}
             </span>
           )}
         </div>

@@ -94,8 +94,7 @@ export default async function ExplorePage({
     currentProfile?.display_name || currentProfile?.username || "guest";
   const avatarLetter = displayName.charAt(0).toUpperCase();
 
-  const threadItems =
-    threads?.map((thread) => thread.name?.trim()).filter(Boolean) || [];
+  const threadItems = threads || [];
 
   // Normalize author field - Supabase can return single object or array
   const workItems = (sortedWorks || []).map((work) => ({
@@ -117,34 +116,34 @@ export default async function ExplorePage({
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
           <aside className="hidden lg:flex lg:flex-col lg:gap-6">
-            <div className="rounded-2xl bg-[#b0b0b0] p-3 shadow-sm">
+            <div className="rounded-2xl bg-[#b0b0b0] p-2 shadow-sm">
               <div className="relative overflow-hidden rounded-xl bg-white">
-                <div className="h-20 bg-slate-400" />
-                <div className="h-20 bg-slate-300" />
-                <div className="absolute left-1/2 top-20 -translate-x-1/2 -translate-y-1/2">
+                <div className="h-14 bg-slate-400" />
+                <div className="h-14 bg-slate-300" />
+                <div className="absolute left-1/2 top-14 -translate-x-1/2 -translate-y-1/2">
                   {currentProfile?.avatar_url ? (
                     <img
                       src={currentProfile.avatar_url}
                       alt={displayName}
-                      className="h-24 w-24 rounded-full border-4 border-white object-cover shadow-md"
+                      className="h-20 w-20 rounded-full border-4 border-white object-cover shadow-md"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="h-24 w-24 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center text-3xl text-slate-600 shadow-md">
+                    <div className="h-20 w-20 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center text-2xl text-slate-600 shadow-md">
                       {avatarLetter}
                     </div>
                   )}
                 </div>
-                <div className="flex justify-center pb-4 pt-16">
+                <div className="flex justify-center pb-3 pt-12">
                   {currentProfile?.username ? (
                     <Link
                       href={`/${currentProfile.username}`}
-                      className="rounded-full bg-slate-200 px-8 py-2 text-sm shadow-sm hover:bg-slate-300 transition-colors"
+                      className="rounded-full bg-slate-200 px-6 py-1.5 text-sm shadow-sm hover:bg-slate-300 transition-colors"
                     >
                       portfolio
                     </Link>
                   ) : (
-                    <span className="rounded-full bg-slate-200 px-8 py-2 text-sm shadow-sm">
+                    <span className="rounded-full bg-slate-200 px-6 py-1.5 text-sm shadow-sm">
                       portfolio
                     </span>
                   )}
@@ -192,10 +191,15 @@ export default async function ExplorePage({
               <p className="text-sm text-black/70">threads for you</p>
               {threadItems.length > 0 ? (
                 <ul className="space-y-3 text-sm">
-                  {threadItems.map((item) => (
-                    <li key={item} className="flex items-center gap-3">
-                      <span className="h-8 w-8 rounded-md bg-[#d0d0d0]" />
-                      <span>{item}</span>
+                  {threadItems.map((thread) => (
+                    <li key={thread.id}>
+                      <Link
+                        href={`/thread/${thread.id}`}
+                        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                      >
+                        <span className="h-8 w-8 rounded-md bg-[#d0d0d0]" />
+                        <span>{thread.name}</span>
+                      </Link>
                     </li>
                   ))}
                 </ul>

@@ -24,6 +24,22 @@ export interface User {
   created_at: string;
 }
 
+// Thread types
+export interface Thread {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string | null; // null = default interest
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ThreadWithFollowStatus extends Thread {
+  is_following: boolean;
+  followers_count: number;
+  works_count: number;
+}
+
 // Work types
 export type WorkType = "image" | "essay" | "text_post";
 
@@ -41,10 +57,10 @@ export interface Work {
   updated_at: string;
   likes_count: number;
   comments_count: number;
-  primary_interest?: {
+  primary_thread?: {
     id: string;
     name: string;
-    slug: string;
+    description: string | null;
   } | null;
 }
 

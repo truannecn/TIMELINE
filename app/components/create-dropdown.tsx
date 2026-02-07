@@ -33,7 +33,7 @@ export default function CreateDropdown() {
       {isOpen && (
         <div className="absolute top-full mt-2 left-0 bg-white border border-black/20 rounded-lg shadow-lg z-50 overflow-hidden min-w-[140px]">
           <Link
-            href="/upload"
+            href="/create-thread"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm border-b border-black/10 hover:bg-black/5 transition-colors"
           >

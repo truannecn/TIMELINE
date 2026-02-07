@@ -34,6 +34,8 @@ app/
 │   ├── profile/            # Own profile
 │   ├── profile/edit/       # Edit profile
 │   ├── upload/             # Create artwork
+│   ├── create-thread/      # Create new thread
+│   ├── thread/[id]/        # Thread-specific feed
 │   ├── work/[id]/          # Work detail page
 │   └── [username]/         # Public profile (e.g., /alice)
 ├── api/
@@ -80,15 +82,14 @@ supabase/migrations/        # SQL migrations
 | Table | Purpose | Key Fields |
 |-------|---------|------------|
 | `profiles` | User profiles (extends `auth.users`) | `id` (FK to auth.users), `username`, `display_name`, `avatar_url`, `bio` |
-| `works` | Artwork/essays | `author_id`, `title`, `work_type` (image/essay), `image_url`, `content` |
+| `works` | Artwork/essays | `author_id`, `title`, `work_type` (image/essay), `image_url`, `content`, `primary_thread_id` |
 | `follows` | One-way follows | `follower_id`, `following_id` (composite PK) |
 | `likes` | Work likes | `user_id`, `work_id` (composite PK) |
 | `bookmarks` | Private bookmarks | `user_id`, `work_id` (composite PK) |
 | `comments` | Work comments | `author_id`, `work_id`, `content` |
-| `threads` | Topic threads | `name` |
-| `interests` | Interest categories | `name` |
-| `user_interests` | User interest prefs | `user_id`, `interest_id` |
-| `work_interests` | Work categorization | `work_id`, `interest_id` |
+| `threads` | Topic threads (replaces interests) | `name`, `description`, `created_by` (null = system thread) |
+| `work_threads` | Work-to-thread many-to-many | `work_id`, `thread_id` (composite PK) |
+| `user_threads` | Thread follows | `user_id`, `thread_id` (composite PK) |
 
 ### Patterns
 
@@ -107,6 +108,9 @@ supabase/migrations/        # SQL migrations
 | `follows` | Public | Own follows | - | Own follows |
 | `likes` | Public | Own only | - | Own only |
 | `bookmarks` | **Own only** | Own only | - | Own only |
+| `threads` | Public | Auth users (own threads) | Own threads | Own threads |
+| `work_threads` | Public | Auth users | - | Auth users |
+| `user_threads` | Public | Own follows | - | Own follows |
 
 ### Queries
 
@@ -132,6 +136,43 @@ const { count } = await supabase
   .eq("following_id", profileId);
 ```
 
+### Thread System
+
+The thread system replaces the previous interests-only categorization. Threads serve as topic categories for organizing works.
+
+**Key Features:**
+- **System threads** (`created_by = null`): Default categories seeded during setup (Illustration, Photography, etc.)
+- **User threads** (`created_by = user_id`): Community-created threads via the "create thread" button
+- **Required categorization**: Each work must have ONE `primary_thread_id`
+- **Multi-tagging**: Works can be tagged with multiple threads via `work_threads` junction table
+- **Thread following**: Users can follow threads via `user_threads`
+
+**Default System Threads:**
+Illustration, Photography, Digital Art, Traditional Art, Animation, Comic & Sequential, Sculpture & 3D, Writing, Worldbuilding, Design, Crafts, Mixed Media
+
+**Queries:**
+
+```typescript
+// Get works in a thread (via work_threads)
+const { data } = await supabase
+  .from("work_threads")
+  .select(`work:works!work_threads_work_id_fkey(*, author:profiles!works_author_id_fkey(*))`)
+  .eq("thread_id", threadId);
+
+// Get works where thread is primary
+const { data } = await supabase
+  .from("works")
+  .select(`*, author:profiles!works_author_id_fkey(*)`)
+  .eq("primary_thread_id", threadId);
+
+// Create a thread
+const { data } = await supabase
+  .from("threads")
+  .insert({ name: "Pixel Art", description: "8-bit and pixel art", created_by: userId })
+  .select()
+  .single();
+```
+
 ---
 
 ## Routes
@@ -148,6 +189,8 @@ const { count } = await supabase
 | `/[username]` | Public profile |
 | `/upload` | Create work (protected) |
 | `/work/[id]` | View work detail |
+| `/create-thread` | Create new thread (protected) |
+| `/thread/[id]` | Thread-specific feed |
 
 ---
 

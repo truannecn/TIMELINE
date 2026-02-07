@@ -12,10 +12,10 @@ type Work = {
   work_type: string | null;
   image_url: string | null;
   created_at: string;
-  primary_interest?: {
+  primary_thread?: {
     id: string;
     name: string;
-    slug: string;
+    description: string | null;
   } | null;
   author?: {
     id: string;
@@ -51,7 +51,7 @@ export default async function ProfilePage({ searchParams }: Props) {
     .from("works")
     .select(`
       *,
-      primary_interest:interests!works_primary_interest_id_fkey(id, name, slug)
+      primary_thread:threads!works_primary_thread_id_fkey(id, name, description)
     `)
     .eq("author_id", user.id)
     .order("created_at", { ascending: false });
@@ -70,7 +70,7 @@ export default async function ProfilePage({ searchParams }: Props) {
         image_url,
         created_at,
         author:profiles!works_author_id_fkey(id, username, display_name, avatar_url),
-        primary_interest:interests!works_primary_interest_id_fkey(id, name, slug)
+        primary_thread:threads!works_primary_thread_id_fkey(id, name, description)
       )
     `
     )

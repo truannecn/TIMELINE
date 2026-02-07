@@ -264,15 +264,15 @@ export default function NewWorkPage() {
         throw insertError || new Error("Failed to create work");
       }
 
-      // Update work with primary interest
+      // Update work with primary thread
       if (primaryInterest) {
         const { error: primaryError } = await supabase
           .from("works")
-          .update({ primary_interest_id: primaryInterest })
+          .update({ primary_thread_id: primaryInterest })
           .eq("id", insertedWork.id);
 
         if (primaryError) {
-          console.error("Failed to save primary interest:", primaryError);
+          console.error("Failed to save primary thread:", primaryError);
         }
       }
 

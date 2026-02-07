@@ -94,6 +94,8 @@ CRITICAL CHECKS (only build-failing issues):
 - Invalid SQL syntax in migrations
 - Invalid JSON in config files
 - TypeScript errors that would fail build
+- Accessing properties on potentially null Supabase query results without null checks (e.g., data.id when data could be null from .single())
+- NOTE: Field/type renames (e.g., primary_interest → primary_thread) are NOT critical if all references are updated consistently and TypeScript compiles
 
 WARNING CHECKS (everything else - security, best practices, etc.):
 - Security issues (SQL injection, XSS, auth bypasses)
@@ -122,6 +124,7 @@ SQL-SPECIFIC CHECKS:
 - Is 'on delete cascade' used appropriately?
 - Are migrations reversible?
 - Standard columns included: id, created_at, updated_at?
+- CRITICAL: 'ON CONFLICT (column)' requires a UNIQUE constraint/index on that column, otherwise the migration will fail at runtime
 ` : ''}
 
 ${isComponent ? `

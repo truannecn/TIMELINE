@@ -10,13 +10,9 @@ CREATE INDEX IF NOT EXISTS idx_works_work_type ON works(work_type);
 CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);
 CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id);
 
--- Work interests table indexes
-CREATE INDEX IF NOT EXISTS idx_work_interests_work_id ON work_interests(work_id);
-CREATE INDEX IF NOT EXISTS idx_work_interests_interest_id ON work_interests(interest_id);
-
--- User interests table indexes
-CREATE INDEX IF NOT EXISTS idx_user_interests_user_id ON user_interests(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_interests_interest_id ON user_interests(interest_id);
+-- Note: Thread-related indexes are in their respective migration files
+-- work_threads indexes in 20260207090000_add_threads.sql
+-- user_threads indexes in 20260207130000_add_user_threads_and_thread_creator.sql
 
 -- Bookmarks table indexes (composite index for user + work lookups)
 CREATE INDEX IF NOT EXISTS idx_bookmarks_user_work ON bookmarks(user_id, work_id);
@@ -38,6 +34,5 @@ CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at DESC);
 -- - Fetching works by author
 -- - Sorting works by date
 -- - Finding who follows whom
--- - Looking up user interests
 -- - Checking bookmark/like status
 -- - Loading comments for a work
