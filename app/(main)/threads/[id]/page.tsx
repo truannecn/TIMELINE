@@ -13,7 +13,7 @@ type Thread = {
   description: string | null;
   created_at: string;
   created_by?: string | null;
-  creator?: Profile | Profile[] | null;
+  creator?: Profile | null;
 };
 
 type Profile = {
@@ -35,20 +35,23 @@ type Work = {
 
 type WorkThreadLink = {
   created_at: string;
-  work: Work | Work[] | null;
+  work: Work | null;
 };
 
 function normalizeWork(link?: WorkThreadLink | null): Work | null {
   if (!link || !link.work) return null;
-  return Array.isArray(link.work) ? link.work[0] : link.work;
+  // Supabase may return an array for embedded resources at runtime
+  const work = link.work as Work | Work[];
+  return Array.isArray(work) ? work[0] : work;
 }
 
 function normalizeAuthor(work: Work | null): Work | null {
   if (!work) return null;
+  // Supabase may return an array for embedded resources at runtime
   const author = work.author as Profile | Profile[] | null | undefined;
   return {
     ...work,
-    author: Array.isArray(author) ? author[0] : author,
+    author: Array.isArray(author) ? (author[0] ?? null) : (author ?? null),
   };
 }
 
@@ -107,7 +110,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
     .limit(1);
 
   const featuredWork = featuredLinks?.[0]
-    ? normalizeAuthor(normalizeWork(featuredLinks[0]))
+    ? normalizeAuthor(normalizeWork(featuredLinks[0] as unknown as WorkThreadLink))
     : null;
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -132,7 +135,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
     .limit(6);
 
   const trendingWorks = (trendingLinks || [])
-    .map(normalizeWork)
+    .map((link) => normalizeWork(link as unknown as WorkThreadLink))
     .filter((work): work is Work => Boolean(work))
     .map(normalizeAuthor)
     .filter((work): work is Work => Boolean(work));
@@ -155,7 +158,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
   const creativesCount = new Set(
     (allThreadLinks || [])
       .map((link) => {
-        const work = normalizeWork(link as WorkThreadLink | null);
+        const work = normalizeWork(link as unknown as WorkThreadLink | null);
         return work?.author_id || null;
       })
       .filter(Boolean)
@@ -168,9 +171,10 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
     })
     .toLowerCase();
 
+  const rawCreator = thread.creator as Profile | Profile[] | null | undefined;
   const normalizedThread: Thread = {
     ...thread,
-    creator: Array.isArray(thread.creator) ? thread.creator[0] : thread.creator,
+    creator: Array.isArray(rawCreator) ? (rawCreator[0] ?? null) : (rawCreator ?? null),
   };
 
   const creatorLabel = featuredWork?.author?.username

@@ -118,6 +118,22 @@ export async function toggleLike(workId: string): Promise<{ success: boolean; is
       return { success: false, isLiked: false, likeCount: 0 };
     }
 
+    // Notify work author (skip self-notifications)
+    const { data: work } = await supabase
+      .from("works")
+      .select("author_id")
+      .eq("id", workId)
+      .single();
+
+    if (work && work.author_id !== user.id) {
+      await supabase.from("notifications").insert({
+        recipient_id: work.author_id,
+        actor_id: user.id,
+        work_id: workId,
+        type: "like",
+      });
+    }
+
     // Get updated like count
     const { count } = await supabase
       .from("likes")

@@ -22,11 +22,11 @@ export function VersionHistorySection({
   const [showVersions, setShowVersions] = useState(false);
 
   return (
-    <div className="mt-12 pt-8 border-t border-gray-200">
+    <div className="mt-12 pt-8 border-t border-black/10">
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={() => setShowVersions(!showVersions)}
-          className="flex items-center gap-2 text-lg font-medium hover:text-gray-600"
+          className="flex items-center gap-2 text-lg font-medium hover:text-black/60 transition-colors"
         >
           <svg
             className={`w-5 h-5 transition-transform ${showVersions ? "rotate-90" : ""}`}
@@ -43,7 +43,7 @@ export function VersionHistorySection({
           </svg>
           Version History
           {versions.length > 0 && (
-            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-sm rounded-full">
+            <span className="px-2 py-0.5 bg-black/5 text-black/60 text-sm rounded-full">
               {versions.length}
             </span>
           )}
@@ -52,7 +52,7 @@ export function VersionHistorySection({
         {isOwner && (
           <button
             onClick={() => setShowUploadDialog(true)}
-            className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-800"
+            className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-black/90 transition-colors"
           >
             + Upload Previous Version
           </button>

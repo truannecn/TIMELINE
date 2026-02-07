@@ -105,15 +105,34 @@ export default async function ExplorePage({
     .order("created_at", { ascending: false })
     .limit(6);
 
-  const { data: following } = user
-    ? await supabase
-        .from("follows")
-        .select(
-          "following:profiles!follows_following_id_fkey(id, username, display_name, avatar_url)"
-        )
-        .eq("follower_id", user.id)
-        .limit(6)
-    : { data: [] as { following: { id: string; username: string | null; display_name: string | null; avatar_url: string | null } | null }[] };
+  // Get following list and counts
+  const [followingResult, followerCountResult, followingCountResult] = user
+    ? await Promise.all([
+        supabase
+          .from("follows")
+          .select(
+            "following:profiles!follows_following_id_fkey(id, username, display_name, avatar_url)"
+          )
+          .eq("follower_id", user.id)
+          .limit(6),
+        supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("following_id", user.id),
+        supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("follower_id", user.id),
+      ])
+    : [
+        { data: [] as { following: { id: string; username: string | null; display_name: string | null; avatar_url: string | null } | null }[] },
+        { count: 0 },
+        { count: 0 },
+      ];
+
+  const following = followingResult.data;
+  const followerCount = followerCountResult.count || 0;
+  const followingCount = followingCountResult.count || 0;
 
   const displayName =
     currentProfile?.display_name || currentProfile?.username || "guest";
@@ -175,6 +194,18 @@ export default async function ExplorePage({
                     </span>
                   )}
                 </div>
+                {user && (
+                  <div className="flex justify-center gap-6 pb-3 text-sm">
+                    <div className="text-center">
+                      <p className="font-medium text-black/80">{followerCount}</p>
+                      <p className="text-xs text-black/50">followers</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-medium text-black/80">{followingCount}</p>
+                      <p className="text-xs text-black/50">following</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

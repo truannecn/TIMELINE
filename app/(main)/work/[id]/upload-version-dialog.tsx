@@ -253,14 +253,14 @@ export default function UploadVersionDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-serif">Upload Previous Version</h2>
             <button
               onClick={handleClose}
               disabled={uploading || validating}
-              className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              className="text-black/40 hover:text-black/70 disabled:opacity-50 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -271,7 +271,7 @@ export default function UploadVersionDialog({
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Version Title */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="title" className="block text-sm font-medium text-black/70 mb-2">
                 Version Title *
               </label>
               <input
@@ -280,14 +280,14 @@ export default function UploadVersionDialog({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Early Sketch, First Draft, Color Study"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-2 border border-black/10 rounded-lg focus:ring-2 focus:ring-black/20 focus:border-transparent"
                 disabled={uploading || validating}
               />
             </div>
 
             {/* Notes */}
             <div>
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="notes" className="block text-sm font-medium text-black/70 mb-2">
                 Notes (optional)
               </label>
               <textarea
@@ -296,7 +296,7 @@ export default function UploadVersionDialog({
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Describe what changed in this iteration..."
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-2 border border-black/10 rounded-lg focus:ring-2 focus:ring-black/20 focus:border-transparent"
                 disabled={uploading || validating}
               />
             </div>
@@ -304,7 +304,7 @@ export default function UploadVersionDialog({
             {/* Image Upload (for image works) */}
             {workType === "image" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-black/70 mb-2">
                   Image File *
                 </label>
                 <input
@@ -313,7 +313,7 @@ export default function UploadVersionDialog({
                   accept="image/jpeg,image/png,image/gif,image/webp"
                   onChange={handleFileSelect}
                   disabled={uploading || validating}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  className="w-full px-4 py-2 border border-black/10 rounded-lg focus:ring-2 focus:ring-black/20 focus:border-transparent"
                 />
                 {preview && (
                   <div className="mt-4">
@@ -326,7 +326,7 @@ export default function UploadVersionDialog({
             {/* Essay Content (for essay works) */}
             {workType === "essay" && (
               <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="content" className="block text-sm font-medium text-black/70 mb-2">
                   Essay Content * (min 100 characters)
                 </label>
                 <textarea
@@ -335,10 +335,10 @@ export default function UploadVersionDialog({
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Paste the content of this version..."
                   rows={12}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-mono text-sm"
+                  className="w-full px-4 py-2 border border-black/10 rounded-lg focus:ring-2 focus:ring-black/20 focus:border-transparent font-mono text-sm"
                   disabled={uploading || validating}
                 />
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-black/40 mt-1">
                   {content.length} characters
                 </p>
               </div>
@@ -353,7 +353,7 @@ export default function UploadVersionDialog({
 
             {/* Progress Message */}
             {progress && (
-              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+              <div className="bg-black/5 border border-black/10 text-black/70 px-4 py-3 rounded-lg">
                 {progress}
               </div>
             )}
@@ -364,14 +364,14 @@ export default function UploadVersionDialog({
                 type="button"
                 onClick={handleClose}
                 disabled={uploading || validating}
-                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 border border-black/10 rounded-lg hover:bg-black/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={uploading || validating}
-                className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 bg-black text-white rounded-lg hover:bg-black/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploading || validating ? "Uploading..." : "Upload Version"}
               </button>

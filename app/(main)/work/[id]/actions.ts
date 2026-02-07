@@ -50,6 +50,22 @@ export async function toggleBookmark(workId: string): Promise<{ success: boolean
       return { success: false, isBookmarked: false };
     }
 
+    // Notify work author (skip self-notifications)
+    const { data: work } = await supabase
+      .from("works")
+      .select("author_id")
+      .eq("id", workId)
+      .single();
+
+    if (work && work.author_id !== user.id) {
+      await supabase.from("notifications").insert({
+        recipient_id: work.author_id,
+        actor_id: user.id,
+        work_id: workId,
+        type: "bookmark",
+      });
+    }
+
     revalidatePath(`/work/${workId}`);
     return { success: true, isBookmarked: true };
   }

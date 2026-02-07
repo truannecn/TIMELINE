@@ -62,9 +62,9 @@ export default function VersionHistory({
 
   if (versions.length === 0) {
     return (
-      <div className="text-center py-12 bg-gray-50 rounded-lg">
+      <div className="text-center py-12 bg-black/5 rounded-lg">
         <svg
-          className="w-16 h-16 text-gray-300 mx-auto mb-4"
+          className="w-16 h-16 text-black/20 mx-auto mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -76,8 +76,8 @@ export default function VersionHistory({
             d="M12 6v6m0 0v6m0-6h6m-6 0H6"
           />
         </svg>
-        <h3 className="text-lg font-medium text-gray-700 mb-2">No previous versions yet</h3>
-        <p className="text-gray-500">
+        <h3 className="text-lg font-medium text-black/70 mb-2">No previous versions yet</h3>
+        <p className="text-black/50">
           {isOwner
             ? "Upload previous drafts to show your creative process"
             : "The artist hasn't shared previous versions of this work"}
@@ -98,20 +98,20 @@ export default function VersionHistory({
         {versions.map((version) => (
           <div
             key={version.id}
-            className="border border-gray-200 rounded-lg p-6 bg-white hover:shadow-md transition-shadow"
+            className="border border-black/10 rounded-xl p-6 bg-white hover:shadow-md transition-shadow"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-full">
+                  <span className="px-3 py-1 bg-black/5 text-black/60 text-sm font-medium rounded-full">
                     Version {version.version_number}
                   </span>
-                  <h3 className="text-xl font-serif">{version.title}</h3>
+                  <h3 className="text-xl font-bold">{version.title}</h3>
                 </div>
                 {version.notes && (
-                  <p className="text-gray-600 text-sm leading-relaxed">{version.notes}</p>
+                  <p className="text-black/60 text-sm leading-relaxed">{version.notes}</p>
                 )}
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-xs text-black/40 mt-2">
                   Uploaded {new Date(version.created_at).toLocaleDateString()}
                 </p>
               </div>
@@ -138,7 +138,7 @@ export default function VersionHistory({
             {/* Image Preview */}
             {workType === "image" && version.image_url && (
               <div className="mt-4">
-                <div className="relative rounded-lg overflow-hidden bg-gray-100">
+                <div className="relative rounded-lg overflow-hidden bg-black/5">
                   <Image
                     src={version.image_url}
                     alt={version.title}
@@ -153,12 +153,12 @@ export default function VersionHistory({
 
             {/* Essay Excerpt */}
             {workType === "essay" && version.content && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-700 line-clamp-4 font-serif leading-relaxed">
+              <div className="mt-4 p-4 bg-black/5 rounded-lg">
+                <p className="text-sm text-black/70 line-clamp-4 leading-relaxed">
                   {version.content}
                 </p>
                 {version.content.length > 200 && (
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-black/40 mt-2">
                     {version.content.length} characters
                   </p>
                 )}

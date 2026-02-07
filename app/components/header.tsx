@@ -1,7 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import CreateDropdown from "./create-dropdown";
 import HeaderSearch from "./header-search";
+import NotificationBell from "./notification-bell";
+import { getNotifications } from "@/app/(main)/notifications/actions";
+import logo from "@/app/icon.svg";
 
 export default async function Header(): Promise<JSX.Element> {
   const supabase = await createClient();
@@ -10,13 +14,18 @@ export default async function Header(): Promise<JSX.Element> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: currentProfile } = user
-    ? await supabase
-        .from("profiles")
-        .select("id, username, display_name, avatar_url")
-        .eq("id", user.id)
-        .single()
-    : { data: null };
+  const [{ data: currentProfile }, notifications] = user
+    ? await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, username, display_name, avatar_url")
+          .eq("id", user.id)
+          .single(),
+        getNotifications(),
+      ])
+    : [{ data: null }, []];
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const displayName =
     currentProfile?.display_name || currentProfile?.username || "guest";
@@ -25,10 +34,16 @@ export default async function Header(): Promise<JSX.Element> {
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 bg-[#8C7B9A] border-b border-black/20 px-6 py-4 font-mono">
       <div className="flex items-center gap-6">
-        <div className="flex items-center gap-4">
-          <span className="text-4xl leading-none">✱</span>
-          <span className="text-4xl leading-none">—</span>
-        </div>
+        <Link href="/explore" className="flex items-center">
+          <Image
+            src={logo}
+            alt="timeline"
+            width={66}
+            height={33}
+            priority
+            className="h-8 w-auto"
+          />
+        </Link>
         <CreateDropdown />
       </div>
 
@@ -50,6 +65,12 @@ export default async function Header(): Promise<JSX.Element> {
       <HeaderSearch />
 
       <div className="flex items-center gap-3">
+        {user && (
+          <NotificationBell
+            notifications={notifications}
+            unreadCount={unreadCount}
+          />
+        )}
         {user && currentProfile?.username && (
           <Link
             href={`/${currentProfile.username}`}
