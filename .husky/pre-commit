@@ -13,8 +13,11 @@ fi
 echo "✓ TypeScript type check passed"
 echo ""
 
-# Run AI code review if DEDALUS_API_KEY is set
-if [ -n "$process.env.DEDALUS_API_KEY" ]; then
+# Run AI code review if DEDALUS_API_KEY is set and SKIP_REVIEW is not true
+if [ "$SKIP_REVIEW" = "true" ]; then
+  echo "⚠️  Skipping AI code review (SKIP_REVIEW=true)"
+  echo "   Use with caution - bypassing security checks!"
+elif [ -n "$process.env.DEDALUS_API_KEY" ]; then
   echo "Running AI code review..."
   npx tsx scripts/code-review.ts
   REVIEW_EXIT_CODE=$?

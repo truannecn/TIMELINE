@@ -2,6 +2,14 @@
 /**
  * Automated code review using Dedalus + Claude
  * Reviews staged git changes for security, conventions, and best practices
+ *
+ * Usage:
+ *   npm run review              # Run review on staged changes
+ *   npm run review -- --skip    # Skip review (emergency bypass)
+ *   SKIP_REVIEW=true npm run review  # Skip via environment variable
+ *
+ * Flags:
+ *   --skip, --no-review         Skip the code review (use with caution)
  */
 
 import { config } from 'dotenv';
@@ -200,9 +208,19 @@ IMPORTANT:
 }
 
 async function main() {
-  // Allow bypass in emergencies (use with caution!)
-  if (process.env.SKIP_REVIEW === 'true') {
-    console.log('⚠️  Code review SKIPPED (SKIP_REVIEW=true)');
+  // Check for skip flags
+  const skipFlag = process.argv.includes('--skip') || process.argv.includes('--no-review');
+  const skipEnv = process.env.SKIP_REVIEW === 'true';
+
+  if (skipFlag || skipEnv) {
+    console.log('⚠️  Code review SKIPPED');
+    if (skipFlag) {
+      console.log('   (via command-line flag)');
+    }
+    if (skipEnv) {
+      console.log('   (via SKIP_REVIEW environment variable)');
+    }
+    console.log('   Use with caution - bypassing security checks!\n');
     return;
   }
 

@@ -241,6 +241,11 @@ The project includes AI-powered code review using Dedalus + Claude that runs:
 2. Hooks are automatically configured via Husky
 3. Review runs automatically on `git commit`
 
+**Skipping Review (Emergency Use Only):**
+- During commit: `SKIP_REVIEW=true git commit -m "message"`
+- Manual review: `npm run review -- --skip` or `SKIP_REVIEW=true npm run review`
+- Use with caution - bypasses security checks!
+
 **Note:** If `DEDALUS_API_KEY` is not set, the pre-commit hook will skip the AI review with a warning but allow the commit to proceed.
 
 ---
