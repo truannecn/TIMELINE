@@ -143,6 +143,70 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
     .map(normalizeAuthor)
     .filter((work): work is Work => Boolean(work));
 
+  const { data: threadWorkLinks } = await supabase
+    .from("work_threads")
+    .select(
+      `
+      created_at,
+      work:works(
+        id,
+        title,
+        description,
+        image_url,
+        created_at,
+        author_id,
+        author:profiles!works_author_id_fkey(id, username, display_name, avatar_url)
+      )
+    `
+    )
+    .eq("thread_id", id)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const { data: primaryWorks } = await supabase
+    .from("works")
+    .select(
+      `
+      id,
+      title,
+      description,
+      image_url,
+      created_at,
+      author_id,
+      author:profiles!works_author_id_fkey(id, username, display_name, avatar_url)
+    `
+    )
+    .eq("primary_thread_id", id)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const combinedWorks: Work[] = [];
+  const workIds = new Set<string>();
+
+  (threadWorkLinks || [])
+    .map((link) => normalizeAuthor(normalizeWork(link as unknown as WorkThreadLink)))
+    .filter((work): work is Work => Boolean(work))
+    .forEach((work) => {
+      if (!workIds.has(work.id)) {
+        workIds.add(work.id);
+        combinedWorks.push(work);
+      }
+    });
+
+  (primaryWorks || [])
+    .map((work) => normalizeAuthor(work as Work))
+    .filter((work): work is Work => Boolean(work))
+    .forEach((work) => {
+      if (!workIds.has(work.id)) {
+        workIds.add(work.id);
+        combinedWorks.push(work);
+      }
+    });
+
+  combinedWorks.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
   const { data: allThreadLinks } = await supabase
     .from("work_threads")
     .select("work:works(author_id)")
@@ -255,6 +319,46 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div className="mt-10">
+              {combinedWorks.length > 0 ? (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  {combinedWorks.map((work) => (
+                    <a
+                      key={work.id}
+                      href={`/work/${work.id}`}
+                      className="group overflow-hidden rounded-[14px] bg-white shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      {work.image_url ? (
+                        <img
+                          src={work.image_url}
+                          alt={work.title || "Thread post"}
+                          className="h-48 w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-48 items-center justify-center bg-[#e0e0e0] text-sm text-black/60">
+                          no image
+                        </div>
+                      )}
+                      <div className="border-t border-black/10 px-4 py-3">
+                        <p className="text-sm text-black font-[family-name:var(--font-jetbrains-mono)]">
+                          {work.title || "untitled"}
+                        </p>
+                        {work.description && (
+                          <p className="mt-1 text-xs text-black/60 line-clamp-2">
+                            {work.description}
+                          </p>
+                        )}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[14px] bg-[#f2f2f2] px-6 py-8 text-center text-sm text-black/60">
+                  no posts in this thread yet
+                </div>
+              )}
             </div>
           </div>
         </section>
