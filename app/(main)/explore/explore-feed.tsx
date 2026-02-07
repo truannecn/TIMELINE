@@ -40,12 +40,12 @@ type ExploreFeedProps = {
   profiles: Profile[];
   followingIds: string[];
   isAuthenticated: boolean;
+  searchQuery?: string;
 };
 
 type SearchMode = "posts" | "users";
 
-export default function ExploreFeed({ works, profiles, followingIds, isAuthenticated }: ExploreFeedProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+export default function ExploreFeed({ works, profiles, followingIds, isAuthenticated, searchQuery }: ExploreFeedProps) {
   const [searchMode, setSearchMode] = useState<SearchMode>("posts");
   const [followingState, setFollowingState] = useState<Set<string>>(new Set(followingIds));
   const [isPending, startTransition] = useTransition();
@@ -71,7 +71,7 @@ export default function ExploreFeed({ works, profiles, followingIds, isAuthentic
   );
 
   const filteredWorks = useMemo(() => {
-    if (!searchQuery.trim()) {
+    if (!searchQuery || !searchQuery.trim()) {
       return works;
     }
 
@@ -91,7 +91,7 @@ export default function ExploreFeed({ works, profiles, followingIds, isAuthentic
   }, [searchQuery, works, worksFuse, followingSet]);
 
   const filteredProfiles = useMemo(() => {
-    if (!searchQuery.trim()) {
+    if (!searchQuery || !searchQuery.trim()) {
       return profiles;
     }
 
@@ -123,59 +123,27 @@ export default function ExploreFeed({ works, profiles, followingIds, isAuthentic
 
   return (
     <section className="space-y-6">
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setSearchMode("posts")}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              searchMode === "posts"
-                ? "bg-black text-white"
-                : "bg-white text-black/70 hover:bg-black/5"
-            }`}
-          >
-            Posts
-          </button>
-          <button
-            onClick={() => setSearchMode("users")}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              searchMode === "users"
-                ? "bg-black text-white"
-                : "bg-white text-black/70 hover:bg-black/5"
-            }`}
-          >
-            Users
-          </button>
-        </div>
-
-        <div className="relative">
-          <input
-            type="text"
-            placeholder={searchMode === "posts" ? "Search works..." : "Search users..."}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm shadow-sm placeholder:text-black/40 focus:border-black/20 focus:outline-none focus:ring-1 focus:ring-black/10"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-black/40 hover:text-black/60"
-              aria-label="Clear search"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-          )}
-        </div>
+      <div className="flex items-center rounded-full bg-white px-2 py-1 shadow-sm w-fit">
+        <button
+          onClick={() => setSearchMode("posts")}
+          className={`rounded-full px-5 py-1 text-sm transition-colors ${
+            searchMode === "posts"
+              ? "bg-black/5"
+              : "text-black/60 hover:bg-black/5"
+          }`}
+        >
+          posts
+        </button>
+        <button
+          onClick={() => setSearchMode("users")}
+          className={`rounded-full px-5 py-1 text-sm transition-colors ${
+            searchMode === "users"
+              ? "bg-black/5"
+              : "text-black/60 hover:bg-black/5"
+          }`}
+        >
+          users
+        </button>
       </div>
 
       {searchMode === "posts" ? (

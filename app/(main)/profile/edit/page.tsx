@@ -342,7 +342,7 @@ export default function EditProfilePage() {
               />
               <label
                 htmlFor="avatar-upload"
-                className="px-4 py-2 border border-border rounded-md text-sm font-medium hover:bg-muted transition-colors cursor-pointer text-center"
+                className="px-3 py-1 border border-border rounded-md text-sm font-medium bg-background hover:bg-gray-50 transition-colors cursor-pointer text-center"
               >
                 Change Photo
               </label>
@@ -350,7 +350,7 @@ export default function EditProfilePage() {
                 <button
                   type="button"
                   onClick={handleRemoveAvatar}
-                  className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                  className="px-3 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
                 >
                   Remove Photo
                 </button>

@@ -2,8 +2,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ExploreFeed from "./explore-feed";
 
-export default async function ExplorePage(): Promise<JSX.Element> {
+export default async function ExplorePage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}): Promise<JSX.Element> {
   const supabase = await createClient();
+  const searchQuery = searchParams.q || "";
 
   const {
     data: { user },
@@ -57,6 +62,12 @@ export default async function ExplorePage(): Promise<JSX.Element> {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
+  // Fetch all profiles for search functionality
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, username, display_name, avatar_url, bio")
+    .order("created_at", { ascending: false });
+
   const { data: creatives } = await supabase
     .from("profiles")
     .select("id, username, display_name, avatar_url")
@@ -86,11 +97,10 @@ export default async function ExplorePage(): Promise<JSX.Element> {
   const threadItems =
     threads?.map((thread) => thread.name?.trim()).filter(Boolean) || [];
 
-  // Normalize author and primary_interest fields - Supabase can return single object or array
+  // Normalize author field - Supabase can return single object or array
   const workItems = (sortedWorks || []).map((work) => ({
     ...work,
     author: Array.isArray(work.author) ? work.author[0] : work.author,
-    primary_interest: Array.isArray(work.primary_interest) ? work.primary_interest[0] : work.primary_interest,
   }));
   const creativeItems = creatives || [];
   const followingItems =
@@ -107,34 +117,34 @@ export default async function ExplorePage(): Promise<JSX.Element> {
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
           <aside className="hidden lg:flex lg:flex-col lg:gap-6">
-            <div className="rounded-2xl bg-[#d9d9d9] p-4 shadow-sm">
-              <div className="relative overflow-hidden rounded-2xl bg-[#f2f2f2]">
-                <div className="h-28 bg-white" />
-                <div className="h-32 bg-[#9a9a9a]" />
-                <div className="absolute left-1/2 top-20 -translate-x-1/2">
+            <div className="rounded-2xl bg-[#b0b0b0] p-3 shadow-sm">
+              <div className="relative overflow-hidden rounded-xl bg-white">
+                <div className="h-20 bg-slate-400" />
+                <div className="h-20 bg-slate-300" />
+                <div className="absolute left-1/2 top-20 -translate-x-1/2 -translate-y-1/2">
                   {currentProfile?.avatar_url ? (
                     <img
                       src={currentProfile.avatar_url}
                       alt={displayName}
-                      className="h-24 w-24 rounded-full border-4 border-[#f2f2f2] object-cover"
+                      className="h-24 w-24 rounded-full border-4 border-white object-cover shadow-md"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="h-24 w-24 rounded-full border-4 border-[#f2f2f2] bg-[#d8d8d8] flex items-center justify-center text-3xl text-black/70">
+                    <div className="h-24 w-24 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center text-3xl text-slate-600 shadow-md">
                       {avatarLetter}
                     </div>
                   )}
                 </div>
-                <div className="flex justify-center pb-6 pt-10">
+                <div className="flex justify-center pb-4 pt-16">
                   {currentProfile?.username ? (
                     <Link
                       href={`/${currentProfile.username}`}
-                      className="rounded-full bg-[#dcdcdc] px-8 py-2 text-sm shadow-sm hover:bg-[#d0d0d0] transition-colors"
+                      className="rounded-full bg-slate-200 px-8 py-2 text-sm shadow-sm hover:bg-slate-300 transition-colors"
                     >
                       portfolio
                     </Link>
                   ) : (
-                    <span className="rounded-full bg-[#dcdcdc] px-8 py-2 text-sm shadow-sm">
+                    <span className="rounded-full bg-slate-200 px-8 py-2 text-sm shadow-sm">
                       portfolio
                     </span>
                   )}
@@ -169,85 +179,13 @@ export default async function ExplorePage(): Promise<JSX.Element> {
             </div>
           </aside>
 
-          <section className="space-y-8">
-            {workItems.length > 0 ? (
-              workItems.map((work) => {
-                const author = work.author;
-                const authorName =
-                  author?.display_name ||
-                  (author?.username ? `@${author.username}` : "anonymous");
-                const authorInitial = authorName.charAt(0).toUpperCase();
-                const isFollowed = followingIds.has(work.author_id);
-
-                return (
-                  <article key={work.id} className="overflow-hidden rounded-xl bg-white shadow-md">
-                    <Link href={`/work/${work.id}`} className="block">
-                      {work.image_url ? (
-                        <img
-                          src={work.image_url}
-                          alt={work.title || "Artwork"}
-                          className="h-80 w-full object-cover hover:opacity-95 transition-opacity"
-                        />
-                      ) : (
-                        <div className="p-6 text-sm text-black/70 hover:bg-black/5 transition-colors">
-                          <p className="text-base text-black/80">
-                            {work.title || "Untitled"}
-                          </p>
-                          {work.description && (
-                            <p className="mt-2 text-black/60">
-                              {work.description}
-                            </p>
-                          )}
-                          {work.work_type === "essay" && work.content && (
-                            <p className="mt-2 line-clamp-3 text-black/50">
-                              {work.content}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </Link>
-                    <div className="flex items-center justify-between border-t border-black/10 p-4 text-sm">
-                      <Link
-                        href={author?.username ? `/${author.username}` : "#"}
-                        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                      >
-                        {author?.avatar_url ? (
-                          <img
-                            src={author.avatar_url}
-                            alt={authorName}
-                            className="h-10 w-10 rounded-full object-cover"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-full bg-[#e6e6e6] flex items-center justify-center">
-                            {authorInitial}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-black/80">{authorName}</p>
-                          {work.title && work.image_url && (
-                            <p className="text-black/60">{work.title}</p>
-                          )}
-                        </div>
-                      </Link>
-                      {isFollowed && (
-                        <span className="text-xs text-black/50 bg-black/5 px-2 py-1 rounded-full">
-                          Following
-                        </span>
-                      )}
-                    </div>
-                  </article>
-                );
-              })
-            ) : (
-              <article className="rounded-xl bg-white p-6 shadow-md text-sm text-black/60">
-                No works yet.{" "}
-                <Link href="/upload" className="underline hover:text-black">
-                  Be the first to share!
-                </Link>
-              </article>
-            )}
-          </section>
+          <ExploreFeed
+            works={workItems}
+            profiles={profiles || []}
+            followingIds={Array.from(followingIds)}
+            isAuthenticated={!!user}
+            searchQuery={searchQuery}
+          />
 
           <aside className="hidden lg:flex lg:flex-col lg:gap-10">
             <div className="space-y-4">
