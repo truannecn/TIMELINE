@@ -86,7 +86,7 @@ export default async function ProfilePage({ searchParams }: Props) {
     <div className="min-h-screen bg-[#d9d9d9] text-[#1b1b1b] font-mono">
       <header className="border-b border-black/10">
         <div className="max-w-6xl mx-auto px-6 py-2 text-sm text-black/70">
-          profile - timeline
+
         </div>
         <div className="max-w-6xl mx-auto px-6 pb-4 flex flex-wrap items-center justify-between gap-4">
           <Link
