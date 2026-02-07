@@ -41,7 +41,7 @@ export default function HomePage(): JSX.Element {
             log in
           </Link>
         </div>
-      </div>
+      </div>\
     </div>
   );
 }
