@@ -14,7 +14,7 @@ echo "✓ TypeScript type check passed"
 echo ""
 
 # Run AI code review if DEDALUS_API_KEY is set
-if [ -n "$DEDALUS_API_KEY" ] || [ -n "$ANTHROPIC_API_KEY" ]; then
+if [ -n "$process.env.DEDALUS_API_KEY" ]; then
   echo "Running AI code review..."
   npx tsx scripts/code-review.ts
   REVIEW_EXIT_CODE=$?

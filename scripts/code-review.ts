@@ -4,10 +4,18 @@
  * Reviews staged git changes for security, conventions, and best practices
  */
 
+import 'dotenv/config';
 import { Dedalus, DedalusRunner } from 'dedalus-labs';
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import * as path from 'path';
+
+// Load .env.local if it exists
+try {
+  require('dotenv').config({ path: path.join(process.cwd(), '.env.local') });
+} catch (error) {
+  // .env.local not found or dotenv not installed
+}
 
 interface ReviewResult {
   file: string;
@@ -75,7 +83,7 @@ ${diff}
 
 ${conventions ? `Project conventions from CLAUDE.md:\n${conventions.slice(0, 2000)}` : ''}
 `,
-    model: 'anthropic/claude-sonnet-4-20250514',
+    model: 'openai/gpt-5.2',
     instructions: `
 You are reviewing code for Artfolio, an AI-free artist portfolio platform.
 
@@ -151,7 +159,19 @@ Be concise. Only flag real issues, not stylistic preferences.
   });
 
   try {
-    const analysis = JSON.parse(result.finalOutput);
+    // Extract text from result - handle both streaming and non-streaming responses
+    let outputText: string;
+    if (typeof result === 'string') {
+      outputText = result;
+    } else if ('text' in result && typeof result.text === 'string') {
+      outputText = result.text;
+    } else if ('content' in result && typeof result.content === 'string') {
+      outputText = result.content;
+    } else {
+      throw new Error('Unexpected result format from Dedalus');
+    }
+
+    const analysis = JSON.parse(outputText);
     return {
       file,
       issues: analysis.issues || [],

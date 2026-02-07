@@ -118,10 +118,11 @@ export default async function ExplorePage(): Promise<JSX.Element> {
   const threadItems =
     threads?.map((thread) => thread.name?.trim()).filter(Boolean) || [];
 
-  // Normalize author field - Supabase can return single object or array
+  // Normalize author and primary_interest fields - Supabase can return single object or array
   const workItems = (sortedWorks || []).map((work) => ({
     ...work,
     author: Array.isArray(work.author) ? work.author[0] : work.author,
+    primary_interest: Array.isArray(work.primary_interest) ? work.primary_interest[0] : work.primary_interest,
   }));
   const creativeItems = creatives || [];
   const followingItems =
