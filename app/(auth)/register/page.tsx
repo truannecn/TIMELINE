@@ -21,11 +21,132 @@ function RegisterContent(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#768594] to-[#6d5d79] px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#768594] to-[#6d5d79] px-4 overflow-hidden">
       {/* Logo */}
-      <p className="font-[family-name:var(--font-jetbrains-mono)] text-white text-8xl sm:text-[128px] leading-none mb-6">
-        *-
-      </p>
+      <div className="mb-6 relative w-[180px] h-[180px]">
+        <svg
+          width="180"
+          height="180"
+          viewBox="0 0 180 180"
+          className="absolute inset-0"
+          style={{
+            animation: "spinExpandFade 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards",
+            transformOrigin: "50% 50%",
+          }}
+        >
+          {/* Asterisk strands */}
+          <line
+            x1="90"
+            y1="90"
+            x2="160"
+            y2="90"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+            className="strand"
+          />
+          <line
+            x1="90"
+            y1="90"
+            x2="111.6"
+            y2="156.6"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+            className="strand"
+          />
+          <line
+            x1="90"
+            y1="90"
+            x2="33.4"
+            y2="131.2"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+            className="strand"
+          />
+          <line
+            x1="90"
+            y1="90"
+            x2="33.4"
+            y2="48.8"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+            className="strand"
+          />
+          <line
+            x1="90"
+            y1="90"
+            x2="111.6"
+            y2="23.4"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+            className="strand"
+          />
+        </svg>
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          <line
+            x1="90"
+            y1="90"
+            x2="160"
+            y2="90"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+          />
+          <line
+            x1="90"
+            y1="90"
+            x2="111.6"
+            y2="156.6"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+          />
+          <line
+            x1="90"
+            y1="90"
+            x2="33.4"
+            y2="131.2"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+          />
+          <line
+            x1="90"
+            y1="90"
+            x2="33.4"
+            y2="48.8"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+          />
+          <line
+            x1="90"
+            y1="90"
+            x2="111.6"
+            y2="23.4"
+            stroke="white"
+            strokeWidth="10"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
+
+      <style jsx>{`
+        @keyframes spinExpandFade {
+          0% {
+            transform: rotate(0deg) scale(0.2);
+            opacity: 1;
+          }
+          100% {
+            transform: rotate(360deg) scale(8);
+            opacity: 0;
+          }
+        }
+      `}</style>
 
       {/* Heading */}
       <h1 className="font-[family-name:var(--font-jetbrains-mono)] text-white text-3xl sm:text-5xl leading-none mb-6">
