@@ -11,7 +11,7 @@ export function SplineBackground(): JSX.Element {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-full z-0 overflow-hidden">
+    <div className="fixed inset-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
       <Spline
         scene="/scene.splinecode"
         onLoad={handleLoad}

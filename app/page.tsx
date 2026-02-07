@@ -4,7 +4,7 @@ import { HomeClient } from "@/components/home-client";
 
 export default function HomePage(): JSX.Element {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row relative">
+    <div className="min-h-screen flex flex-col lg:flex-row relative bg-[#d4d2d8]">
       {/* Left section — logo + tagline */}
       <div className="flex-1 flex flex-col justify-between p-8 sm:p-12 relative z-10">
         <h1 className="font-[family-name:var(--font-jetbrains-mono)] text-[#484545] text-5xl sm:text-7xl lg:text-[128px] leading-none">
@@ -15,7 +15,7 @@ export default function HomePage(): JSX.Element {
       </div>
 
       {/* Right panel — CTA + buttons */}
-      <div className="w-full lg:w-[30%] bg-[rgba(107,100,134,0.5)] flex flex-col items-center justify-center gap-8 p-8 sm:p-12 relative z-10">
+      <div className="w-full lg:w-[30%] bg-gradient-to-b from-[#9990b8] to-[#6b6490] shadow-[-8px_0_30px_rgba(0,0,0,0.3)] flex flex-col items-center justify-center gap-8 p-8 sm:p-12 relative z-10">
         <p className="font-[family-name:var(--font-serif-display)] text-white text-2xl sm:text-[32px] leading-tight text-center max-w-[293px]">
           join millions of other creatives
         </p>
