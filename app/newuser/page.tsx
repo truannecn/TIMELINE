@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
-import { uploadFile } from "@/lib/amplify/storage";
+import { uploadFileWithPresignedUrl } from "@/lib/amplify/storage";
 
 export default function NewUserPage() {
   const router = useRouter();
@@ -163,11 +163,8 @@ export default function NewUserPage() {
 
       // Upload new avatar if selected
       if (avatarFile) {
-        const fileExt = avatarFile.name.split(".").pop();
-        const storagePath = `${user.id}/avatar.${fileExt}`;
-
         try {
-          const uploadResult = await uploadFile(avatarFile, storagePath);
+          const uploadResult = await uploadFileWithPresignedUrl(avatarFile);
           finalAvatarUrl = uploadResult.url;
         } catch {
           throw new Error("Failed to upload avatar");

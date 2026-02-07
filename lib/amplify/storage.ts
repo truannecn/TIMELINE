@@ -1,43 +1,84 @@
-import { uploadData, getUrl, remove } from "aws-amplify/storage";
+import { getUrl, remove } from "aws-amplify/storage";
 
 export interface UploadResult {
   path: string;
   url: string;
 }
 
+export interface PresignedUploadResult {
+  uploadUrl: string;
+  key: string;
+  publicUrl: string;
+}
+
 /**
- * Upload a file to Amplify Storage
+ * Get a pre-signed URL for uploading a file
+ * This bypasses Amplify auth and uses server-side AWS credentials
+ */
+async function getPresignedUploadUrl(
+  fileName: string,
+  contentType: string
+): Promise<PresignedUploadResult> {
+  const response = await fetch("/api/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName, contentType }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get upload URL");
+  }
+
+  return response.json();
+}
+
+/**
+ * Upload a file using a pre-signed URL
  * @param file - The file to upload
- * @param path - The path within the media folder (e.g., "userId/filename.jpg")
  * @param onProgress - Optional callback for upload progress (0-100)
  * @returns The path and public URL of the uploaded file
  */
-export async function uploadFile(
+export async function uploadFileWithPresignedUrl(
   file: File,
-  path: string,
   onProgress?: (progress: number) => void
 ): Promise<UploadResult> {
-  const fullPath = `media/${path}`;
+  // Get pre-signed URL from our API
+  const { uploadUrl, key, publicUrl } = await getPresignedUploadUrl(
+    file.name,
+    file.type
+  );
 
-  const result = await uploadData({
-    path: fullPath,
-    data: file,
-    options: {
-      contentType: file.type,
-      onProgress: (event) => {
-        if (onProgress && event.totalBytes) {
-          onProgress((event.transferredBytes / event.totalBytes) * 100);
-        }
-      },
-    },
-  }).result;
+  // Upload directly to S3 using the pre-signed URL
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
 
-  // Get public URL
-  const urlResult = await getUrl({ path: result.path });
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable && onProgress) {
+        onProgress((event.loaded / event.total) * 100);
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`Upload failed with status ${xhr.status}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Upload failed"));
+    });
+
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.send(file);
+  });
 
   return {
-    path: result.path,
-    url: urlResult.url.toString(),
+    path: key,
+    url: publicUrl,
   };
 }
 

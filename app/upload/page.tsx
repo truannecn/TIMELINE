@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { uploadFile, deleteFile } from "@/lib/amplify/storage";
+import { uploadFileWithPresignedUrl, deleteFile } from "@/lib/amplify/storage";
 
 type WorkType = "image" | "essay";
 
@@ -154,14 +154,10 @@ export default function NewWorkPage() {
 
       setValidating(false);
 
-      // Upload image to Amplify Storage
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const storagePath = `${user.id}/${fileName}`;
-
+      // Upload image using pre-signed URL
       let uploadResult;
       try {
-        uploadResult = await uploadFile(file, storagePath);
+        uploadResult = await uploadFileWithPresignedUrl(file);
       } catch (uploadError) {
         throw new Error(
           uploadError instanceof Error

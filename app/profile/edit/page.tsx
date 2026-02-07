@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
-  uploadFile,
+  uploadFileWithPresignedUrl,
   deleteFile,
   isAmplifyStorageUrl,
   extractPathFromUrl,
@@ -178,11 +178,8 @@ export default function EditProfilePage() {
         }
 
         // Upload new avatar to Amplify Storage
-        const fileExt = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
-        const storagePath = `${user.id}/avatar-${Date.now()}.${fileExt}`;
-
         try {
-          const uploadResult = await uploadFile(avatarFile, storagePath);
+          const uploadResult = await uploadFileWithPresignedUrl(avatarFile);
           newAvatarUrl = uploadResult.url;
         } catch (uploadError) {
           throw new Error(

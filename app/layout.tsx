@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Noto_Serif_KR } from "next/font/google";
 import "./globals.css";
+import { AmplifyProvider } from "@/components/providers/amplify-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,10 +29,15 @@ export default function RootLayout({
 }): JSX.Element {
   return (
     <html lang="en">
+<<<<<<< Updated upstream
       <body
         className={`${inter.className} ${jetbrainsMono.variable} ${notoSerifKR.variable}`}
       >
         {children}
+=======
+      <body className={inter.className}>
+        <AmplifyProvider>{children}</AmplifyProvider>
+>>>>>>> Stashed changes
       </body>
     </html>
   );
