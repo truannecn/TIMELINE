@@ -1,6 +1,6 @@
 echo "Running TypeScript type check..."
 
-OUTPUT=$(npm run typecheck 2>&1)
+OUTPUT=$(npx tsc --noEmit 2>&1)
 TSC_EXIT_CODE=$?
 
 if [ $TSC_EXIT_CODE -ne 0 ]; then
