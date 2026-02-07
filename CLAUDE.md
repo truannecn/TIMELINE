@@ -63,130 +63,46 @@ artfolio/
 ├── CLAUDE.md                    # You are here
 ├── README.md
 │
-├── backend/
-│   ├── alembic/                 # Database migrations
-│   │   ├── versions/
-│   │   └── env.py
-│   ├── alembic.ini
+├── app/                         # Next.js App Router
+│   ├── layout.tsx               # Root layout
+│   ├── page.tsx                 # Landing page (/)
 │   │
-│   ├── app/
-│   │   ├── main.py              # FastAPI app factory
-│   │   ├── config.py            # Pydantic Settings
-│   │   ├── dependencies.py      # Dependency injection
-│   │   │
-│   │   ├── core/                # Shared infrastructure
-│   │   │   ├── database.py      # Supabase client setup
-│   │   │   ├── security.py      # JWT validation, auth helpers
-│   │   │   ├── exceptions.py    # Custom exception classes
-│   │   │   └── middleware.py    # Logging, CORS, etc.
-│   │   │
-│   │   ├── services/            # External service wrappers
-│   │   │   ├── base.py          # Abstract base classes
-│   │   │   ├── ai_detection/
-│   │   │   │   ├── base.py      # AIDetector protocol
-│   │   │   │   ├── sightengine.py
-│   │   │   │   └── gptzero.py
-│   │   │   ├── storage.py       # Supabase Storage wrapper
-│   │   │   └── email.py         # Future: transactional email
-│   │   │
-│   │   ├── features/            # Feature modules (vertical slices)
-│   │   │   ├── auth/
-│   │   │   │   ├── router.py
-│   │   │   │   ├── service.py
-│   │   │   │   └── schemas.py
-│   │   │   │
-│   │   │   ├── users/
-│   │   │   │   ├── router.py
-│   │   │   │   ├── service.py
-│   │   │   │   ├── schemas.py
-│   │   │   │   └── models.py    # Pydantic models for this feature
-│   │   │   │
-│   │   │   ├── works/
-│   │   │   │   ├── router.py
-│   │   │   │   ├── service.py
-│   │   │   │   ├── schemas.py
-│   │   │   │   └── upload.py    # Upload orchestration logic
-│   │   │   │
-│   │   │   ├── communities/
-│   │   │   │   ├── router.py
-│   │   │   │   ├── service.py
-│   │   │   │   └── schemas.py
-│   │   │   │
-│   │   │   ├── social/          # Follows, likes, comments
-│   │   │   │   ├── router.py
-│   │   │   │   ├── service.py
-│   │   │   │   └── schemas.py
-│   │   │   │
-│   │   │   └── feed/
-│   │   │       ├── router.py
-│   │   │       └── service.py
-│   │   │
-│   │   └── utils/
-│   │       ├── images.py        # Thumbnail generation, compression
-│   │       └── pagination.py    # Cursor-based pagination helpers
+│   ├── (auth)/                  # Auth group (no layout)
+│   │   └── login/
+│   │       └── page.tsx         # Login page with OAuth buttons
 │   │
-│   ├── tests/
-│   │   ├── conftest.py          # Fixtures
-│   │   ├── test_works.py
-│   │   └── ...
+│   ├── auth/
+│   │   └── signout/
+│   │       └── route.ts         # POST /auth/signout - signs out user
 │   │
-│   ├── requirements.txt
-│   ├── requirements-dev.txt
-│   └── Dockerfile
+│   ├── oauth/
+│   │   └── consent/
+│   │       └── route.ts         # OAuth callback - exchanges code for session
+│   │
+│   ├── feed/
+│   │   └── page.tsx             # Main feed (protected)
+│   │
+│   └── profile/
+│       └── page.tsx             # User profile (protected)
 │
-├── frontend/
-│   ├── app/
-│   │   ├── layout.tsx
-│   │   ├── page.tsx             # Landing page
-│   │   ├── (auth)/
-│   │   │   ├── login/page.tsx
-│   │   │   └── callback/page.tsx
-│   │   ├── (main)/              # Authenticated routes
-│   │   │   ├── layout.tsx       # Shell with nav
-│   │   │   ├── feed/page.tsx
-│   │   │   ├── explore/page.tsx
-│   │   │   ├── upload/page.tsx
-│   │   │   ├── c/[slug]/page.tsx
-│   │   │   └── [username]/
-│   │   │       ├── page.tsx
-│   │   │       └── work/[id]/page.tsx
-│   │   └── api/                 # BFF routes if needed
-│   │
-│   ├── components/
-│   │   ├── ui/                  # shadcn/ui primitives
-│   │   ├── layouts/
-│   │   ├── works/
-│   │   ├── profile/
-│   │   └── community/
-│   │
-│   ├── lib/
-│   │   ├── supabase/
-│   │   │   ├── client.ts
-│   │   │   ├── server.ts
-│   │   │   └── middleware.ts
-│   │   ├── api/                 # Backend API client
-│   │   │   ├── client.ts
-│   │   │   ├── works.ts
-│   │   │   ├── users.ts
-│   │   │   └── types.ts         # Shared API types
-│   │   └── utils.ts
-│   │
-│   ├── hooks/
-│   ├── types/
-│   ├── package.json
-│   └── tailwind.config.ts
+├── components/
+│   └── ui/                      # shadcn/ui primitives
+│
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts            # Browser Supabase client
+│   │   ├── server.ts            # Server Supabase client + getUser/getSession
+│   │   └── middleware.ts        # Route protection middleware
+│   └── utils.ts
 │
 ├── supabase/
-│   ├── migrations/              # SQL migration files
-│   │   ├── 00001_initial_schema.sql
-│   │   └── ...
-│   ├── seed.sql                 # Dev seed data
-│   └── config.toml
+│   └── migrations/
+│       └── 00001_create_profiles.sql  # Profiles table + RLS + triggers
 │
-└── docs/
-    ├── api.md
-    ├── database.md
-    └── ai-detection.md
+├── middleware.ts                # Next.js middleware (calls updateSession)
+├── package.json
+├── tailwind.config.ts
+└── tsconfig.json
 ```
 
 ---
@@ -590,40 +506,28 @@ Use Vitest + React Testing Library. Mock API calls with MSW.
 ### Local Setup
 
 ```bash
-# Backend
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-cp .env.example .env  # Fill in values
-uvicorn app.main:app --reload
-
-# Frontend
-cd frontend
+# Install dependencies
 npm install
-cp .env.example .env.local  # Fill in values
-npm run dev
 
-# Database (using Supabase CLI)
-supabase start  # Local Supabase instance
-supabase db reset  # Apply migrations + seed
+# Set up environment variables
+cp .env.example .env.local  # Fill in values
+
+# Run dev server
+npm run dev
 ```
 
 ### Environment Variables
 
 ```bash
-# backend/.env
-SUPABASE_URL=http://localhost:54321
-SUPABASE_SERVICE_KEY=...
-SIGHTENGINE_API_USER=...
-SIGHTENGINE_API_SECRET=...
-GPTZERO_API_KEY=...
-CORS_ORIGINS=http://localhost:3000
-
-# frontend/.env.local
-NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+# .env.local
+NEXT_PUBLIC_SUPABASE_URL=https://oaooikqeqijrlfzdwdfs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Future: when FastAPI backend is added
+# NEXT_PUBLIC_API_URL=http://localhost:8000
+# SIGHTENGINE_API_USER=...
+# SIGHTENGINE_API_SECRET=...
+# GPTZERO_API_KEY=...
 ```
 
 ---
@@ -633,11 +537,21 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 We're in **Phase 1**. Focus on:
 
 1. ✅ Project structure setup
-2. ⬜ Supabase project + initial schema
-3. ⬜ FastAPI app skeleton with health check
-4. ⬜ Supabase Auth integration (Google OAuth)
-5. ⬜ Basic profile CRUD
-6. ⬜ Next.js app with auth flow
+2. ✅ Supabase project + initial schema
+3. ⬜ FastAPI app skeleton with health check (deferred - using Next.js API routes for now)
+4. ✅ Supabase Auth integration (Google OAuth)
+5. ⬜ Basic profile CRUD (read done, update pending)
+6. ✅ Next.js app with auth flow
+
+**Completed in this phase:**
+
+- Supabase project: `oaooikqeqijrlfzdwdfs.supabase.co`
+- `profiles` table with RLS policies (public read, owner update/insert)
+- Auto-create profile trigger on user signup (pulls name + avatar from OAuth)
+- Google OAuth configured and working
+- Protected routes: `/feed`, `/profile`, `/explore`, `/upload`, `/settings`
+- OAuth flow: `/login` → Google → `/oauth/consent` → `/feed`
+- Sign out: POST `/auth/signout` → `/login`
 
 **Do not build yet:**
 
@@ -654,23 +568,21 @@ Keep the scope minimal. Get auth → profile → single image upload working end
 ## Commands Reference
 
 ```bash
-# Backend
-uvicorn app.main:app --reload          # Run dev server
-pytest                                   # Run tests
-alembic upgrade head                     # Run migrations
-alembic revision --autogenerate -m ""    # Create migration
-
-# Frontend
+# Next.js
 npm run dev                              # Run dev server
 npm run build                            # Production build
 npm run lint                             # Lint
-npm run test                             # Run tests
 
-# Supabase
+# Supabase (when using local instance)
 supabase start                           # Start local instance
 supabase stop                            # Stop local instance
 supabase db reset                        # Reset + migrate + seed
 supabase gen types typescript --local    # Generate TS types from schema
+
+# Future: Backend (when FastAPI is added)
+# uvicorn app.main:app --reload          # Run dev server
+# pytest                                   # Run tests
+# alembic upgrade head                     # Run migrations
 ```
 
 ---
@@ -684,13 +596,18 @@ supabase gen types typescript --local    # Generate TS types from schema
 | 2025-02-06 | Sightengine + GPTZero              | Best-in-class for respective content types    |
 | 2025-02-06 | Feature folders over layer folders | Easier to reason about, scales better         |
 | 2025-02-06 | Cursor pagination                  | Handles real-time feeds, no offset drift      |
+| 2026-02-06 | Next.js-first MVP                  | Defer FastAPI until we need custom backend logic |
+| 2026-02-06 | OAuth callback at `/oauth/consent` | Clearer naming, separate from auth group      |
+| 2026-02-06 | Profile auto-creation via trigger  | No extra API call needed on first login       |
 
 ---
 
 ## Open Questions
 
-- [ ] What OAuth providers beyond Google? (GitHub, Discord, Email?)
+- [x] What OAuth providers beyond Google? → GitHub and Discord buttons exist, need to configure in Supabase Dashboard
 - [ ] Storage limits per user?
 - [ ] Appeals process for false positive AI detection?
 - [ ] Monetization model? (affects schema for subscriptions)
 - [ ] Mobile app timeline? (affects API design)
+- [ ] Profile edit page implementation?
+- [ ] When to add FastAPI backend vs continue with Next.js API routes?

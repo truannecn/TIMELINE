@@ -14,7 +14,7 @@ export default function LoginPage(): JSX.Element {
     await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/callback?next=${redirect}`,
+        redirectTo: `${window.location.origin}/oauth/consent?next=${redirect}`,
       },
     });
   };
