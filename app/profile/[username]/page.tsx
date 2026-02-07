@@ -1,42 +1,67 @@
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { FollowButton } from "./follow-button";
 
-export default async function ProfilePage() {
+interface Props {
+  params: Promise<{ username: string }>;
+}
+
+export default async function PublicProfilePage({ params }: Props) {
+  const { username } = await params;
   const supabase = await createClient();
 
+  // Get current user (may be null if not logged in)
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Fetch the user's profile
-  const { data: profile } = await supabase
+  // Fetch the profile by username
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user.id)
+    .eq("username", username.toLowerCase())
     .single();
+
+  if (error || !profile) {
+    notFound();
+  }
+
+  // If viewing own profile, redirect to /profile
+  if (user && profile.id === user.id) {
+    redirect("/profile");
+  }
 
   // Fetch the user's works
   const { data: works } = await supabase
     .from("works")
     .select("*")
-    .eq("author_id", user.id)
+    .eq("author_id", profile.id)
     .order("created_at", { ascending: false });
+
+  // Check if current user is following this profile
+  let isFollowing = false;
+  if (user) {
+    const { data: follow } = await supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", user.id)
+      .eq("following_id", profile.id)
+      .maybeSingle();
+
+    isFollowing = !!follow;
+  }
 
   // Get follower/following counts
   const { count: followersCount } = await supabase
     .from("follows")
     .select("*", { count: "exact", head: true })
-    .eq("following_id", user.id);
+    .eq("following_id", profile.id);
 
   const { count: followingCount } = await supabase
     .from("follows")
     .select("*", { count: "exact", head: true })
-    .eq("follower_id", user.id);
+    .eq("follower_id", profile.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,33 +77,36 @@ export default async function ProfilePage() {
             >
               Feed
             </Link>
-            <Link
-              href="/profile"
-              className="text-sm text-foreground font-medium"
-            >
-              Profile
-            </Link>
-            <Link
-              href="/upload"
-              className="px-4 py-1.5 bg-foreground text-background rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              Upload
-            </Link>
-            <form action="/auth/signout" method="POST">
-              <button
-                type="submit"
-                className="text-sm text-muted-foreground hover:text-foreground"
+            {user ? (
+              <>
+                <Link
+                  href="/profile"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Profile
+                </Link>
+                <Link
+                  href="/upload"
+                  className="px-4 py-1.5 bg-foreground text-background rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  Upload
+                </Link>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="px-4 py-1.5 bg-foreground text-background rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
               >
-                Sign out
-              </button>
-            </form>
+                Sign in
+              </Link>
+            )}
           </nav>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-start gap-6 mb-8">
-          {profile?.avatar_url ? (
+          {profile.avatar_url ? (
             <img
               src={profile.avatar_url}
               alt={profile.display_name || "Avatar"}
@@ -88,19 +116,17 @@ export default async function ProfilePage() {
           ) : (
             <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
               <span className="text-2xl text-muted-foreground">
-                {(profile?.display_name || user.email)?.[0]?.toUpperCase()}
+                {(profile.display_name || "?")[0].toUpperCase()}
               </span>
             </div>
           )}
 
           <div className="flex-1">
             <h1 className="text-2xl font-bold">
-              {profile?.display_name || "Anonymous Artist"}
+              {profile.display_name || "Anonymous Artist"}
             </h1>
-            {profile?.username && (
-              <p className="text-muted-foreground">@{profile.username}</p>
-            )}
-            {profile?.bio && <p className="mt-2">{profile.bio}</p>}
+            <p className="text-muted-foreground">@{profile.username}</p>
+            {profile.bio && <p className="mt-2">{profile.bio}</p>}
 
             <div className="flex gap-4 mt-3 text-sm">
               <span>
@@ -114,8 +140,8 @@ export default async function ProfilePage() {
             </div>
 
             <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-              {profile?.location && <span>{profile.location}</span>}
-              {profile?.website && (
+              {profile.location && <span>{profile.location}</span>}
+              {profile.website && (
                 <a
                   href={profile.website}
                   target="_blank"
@@ -128,20 +154,18 @@ export default async function ProfilePage() {
             </div>
           </div>
 
-          <Link
-            href="/profile/edit"
-            className="px-4 py-2 border border-border rounded-md text-sm hover:bg-muted transition-colors"
-          >
-            Edit Profile
-          </Link>
+          {user && (
+            <FollowButton
+              profileId={profile.id}
+              isFollowing={isFollowing}
+            />
+          )}
         </div>
 
         <div className="border-t border-border pt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">
-              Your Works {works && works.length > 0 && `(${works.length})`}
-            </h2>
-          </div>
+          <h2 className="text-lg font-semibold mb-4">
+            Works {works && works.length > 0 && `(${works.length})`}
+          </h2>
 
           {works && works.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -150,11 +174,13 @@ export default async function ProfilePage() {
                   key={work.id}
                   className="aspect-square relative rounded-lg overflow-hidden border border-border group"
                 >
-                  <img
-                    src={work.image_url}
-                    alt={work.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                  {work.image_url && (
+                    <img
+                      src={work.image_url}
+                      alt={work.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                     <p className="text-white text-sm font-medium truncate">
                       {work.title}
@@ -165,15 +191,9 @@ export default async function ProfilePage() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">
-                You haven't uploaded any works yet.
+              <p className="text-muted-foreground">
+                No works yet.
               </p>
-              <Link
-                href="/upload"
-                className="inline-block px-6 py-2 bg-foreground text-background rounded-md font-medium hover:opacity-90 transition-opacity"
-              >
-                Upload Your First Artwork
-              </Link>
             </div>
           )}
         </div>

@@ -20,6 +20,14 @@ export default async function FeedPage() {
     .eq("id", user.id)
     .single();
 
+  // Get list of users the current user follows
+  const { data: following } = await supabase
+    .from("follows")
+    .select("following_id")
+    .eq("follower_id", user.id);
+
+  const followingIds = new Set(following?.map((f) => f.following_id) || []);
+
   // Fetch recent works with author profiles
   const { data: works, error: worksError } = await supabase
     .from("works")
@@ -30,11 +38,23 @@ export default async function FeedPage() {
     `
     )
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(100);
 
   if (worksError) {
     console.error("Error fetching works:", worksError);
   }
+
+  // Sort works: followed users first, then by date
+  const sortedWorks = works?.sort((a, b) => {
+    const aFollowed = followingIds.has(a.author_id);
+    const bFollowed = followingIds.has(b.author_id);
+
+    if (aFollowed && !bFollowed) return -1;
+    if (!aFollowed && bFollowed) return 1;
+
+    // Both followed or both not followed: sort by date
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,47 +99,58 @@ export default async function FeedPage() {
           <h1 className="text-2xl font-bold">Feed</h1>
         </div>
 
-        {works && works.length > 0 ? (
+        {sortedWorks && sortedWorks.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {works.map((work) => (
-              <article
-                key={work.id}
-                className="border border-border rounded-lg overflow-hidden bg-card"
-              >
-                <div className="aspect-square relative">
-                  <img
-                    src={work.image_url}
-                    alt={work.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-4">
-                  <h2 className="font-medium truncate">{work.title}</h2>
-                  {work.description && (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {work.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-3">
-                    {work.author?.avatar_url ? (
+            {sortedWorks.map((work) => {
+              const isFollowed = followingIds.has(work.author_id);
+              return (
+                <article
+                  key={work.id}
+                  className="border border-border rounded-lg overflow-hidden bg-card"
+                >
+                  <div className="aspect-square relative">
+                    {work.image_url && (
                       <img
-                        src={work.author.avatar_url}
-                        alt={work.author.display_name || "Author"}
-                        className="w-6 h-6 rounded-full object-cover"
-                        referrerPolicy="no-referrer"
+                        src={work.image_url}
+                        alt={work.title}
+                        className="absolute inset-0 w-full h-full object-cover"
                       />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs">
-                        {(work.author?.display_name || "?")[0].toUpperCase()}
-                      </div>
                     )}
-                    <span className="text-sm text-muted-foreground">
-                      {work.author?.display_name || "Anonymous"}
-                    </span>
                   </div>
-                </div>
-              </article>
-            ))}
+                  <div className="p-4">
+                    <h2 className="font-medium truncate">{work.title}</h2>
+                    {work.description && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {work.description}
+                      </p>
+                    )}
+                    <Link
+                      href={work.author?.username ? `/profile/${work.author.username}` : "#"}
+                      className="flex items-center gap-2 mt-3 group"
+                    >
+                      {work.author?.avatar_url ? (
+                        <img
+                          src={work.author.avatar_url}
+                          alt={work.author.display_name || "Author"}
+                          className="w-6 h-6 rounded-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs">
+                          {(work.author?.display_name || "?")[0].toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-sm text-muted-foreground group-hover:text-foreground">
+                        {work.author?.display_name || "Anonymous"}
+                      </span>
+                      {isFollowed && (
+                        <span className="text-xs text-muted-foreground">Following</span>
+                      )}
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="bg-card border border-border rounded-lg p-8 text-center">

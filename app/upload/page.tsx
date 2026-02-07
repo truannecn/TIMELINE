@@ -13,6 +13,7 @@ export default function UploadPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,6 +70,31 @@ export default function UploadPage() {
 
       if (!user) {
         setError("You must be logged in to upload");
+        return;
+      }
+
+      // Validate image with AI detection
+      setValidating(true);
+      const validateForm = new FormData();
+      validateForm.append("file", file);
+
+      const validateResponse = await fetch("/api/validate-image", {
+        method: "POST",
+        body: validateForm,
+      });
+
+      const validateResult = await validateResponse.json();
+      setValidating(false);
+
+      if (!validateResponse.ok) {
+        throw new Error(validateResult.error || "Failed to validate image");
+      }
+
+      if (!validateResult.passed) {
+        setError(
+          `This image appears to be AI-generated (confidence: ${Math.round(validateResult.score * 100)}%). Artfolio only accepts human-created artwork.`
+        );
+        setUploading(false);
         return;
       }
 
@@ -243,10 +269,14 @@ export default function UploadPage() {
           {/* Submit button */}
           <button
             type="submit"
-            disabled={uploading || !file}
+            disabled={uploading || validating || !file}
             className="w-full py-3 bg-foreground text-background rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {uploading ? "Uploading..." : "Upload Artwork"}
+            {validating
+              ? "Checking for AI content..."
+              : uploading
+                ? "Uploading..."
+                : "Upload Artwork"}
           </button>
         </form>
       </main>
