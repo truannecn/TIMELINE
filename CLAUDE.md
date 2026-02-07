@@ -1,8 +1,8 @@
-# CLAUDE.md — Artfolio
+# CLAUDE.md: *-timeline
 
 ## Project Vision
 
-Artfolio is an AI-free artist portfolio and social platform. All uploaded content must pass AI detection: **Sightengine** for images, **Dedalus AI** for text/essays.
+timeline is an AI-free artist portfolio and social platform. All uploaded content must pass AI detection: **Sightengine** for images, **Dedalus AI** for text/essays.
 
 **Core philosophy:** Empower human creators, not replace them.
 

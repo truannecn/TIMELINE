@@ -65,6 +65,28 @@ export interface Work {
   } | null;
 }
 
+export interface WorkVersion {
+  id: string;
+  work_id: string;
+  version_number: number;
+  title: string;
+  notes: string | null;
+  // Content fields
+  image_path: string | null;
+  image_url: string | null;
+  width: number | null;
+  height: number | null;
+  content: string | null;
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkWithVersions extends Work {
+  versions?: WorkVersion[];
+  version_count?: number;
+}
+
 // AI Detection types
 export interface DetectionResult {
   passed: boolean;

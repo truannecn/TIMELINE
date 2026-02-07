@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
         const parsed = JSON.parse(jsonMatch[0]);
         aiScore = parsed.ai_probability ?? 0;
         reasoning = parsed.reasoning ?? "";
+        console.log(aiScore);
       }
     } catch (parseError) {
       console.error("Failed to parse AI detection response:", responseText);

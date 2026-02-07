@@ -1,4 +1,4 @@
-# Artfolio
+# Timeline
 
 An AI-free artist portfolio and social platform. Showcase your human creativity.
 
