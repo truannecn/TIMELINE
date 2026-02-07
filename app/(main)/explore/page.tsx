@@ -191,17 +191,24 @@ export default async function ExplorePage({
               <p className="text-sm text-black/70">threads for you</p>
               {threadItems.length > 0 ? (
                 <ul className="space-y-3 text-sm">
-                  {threadItems.map((thread) => (
-                    <li key={thread.id}>
-                      <Link
-                        href={`/thread/${thread.id}`}
-                        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                      >
-                        <span className="h-8 w-8 rounded-md bg-[#d0d0d0]" />
-                        <span>{thread.name}</span>
-                      </Link>
-                    </li>
-                  ))}
+                  {threadItems.map((thread, index) => {
+                    const colors = ['#BCAACA', '#B6D9E7', '#DCC4AC'];
+                    const bgColor = colors[index % 3];
+                    return (
+                      <li key={thread.id}>
+                        <Link
+                          href={`/thread/${thread.id}`}
+                          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                        >
+                          <span 
+                            className="h-8 w-8 rounded-md" 
+                            style={{ backgroundColor: bgColor }}
+                          />
+                          <span>{thread.name}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="text-sm text-black/50">no threads yet</p>

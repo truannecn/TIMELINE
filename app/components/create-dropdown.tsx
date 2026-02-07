@@ -24,7 +24,7 @@ export default function CreateDropdown() {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-full border border-black/40 bg-[#e6e6e6] px-4 py-1.5 text-sm shadow-sm hover:bg-[#dcdcdc] transition-colors"
+        className="flex items-center gap-2 rounded-full bg-[#725589] px-4 py-1.5 text-sm text-white shadow-sm hover:bg-[#9F93A7] transition-colors"
       >
         <span className="text-base">+</span>
         <span>create</span>

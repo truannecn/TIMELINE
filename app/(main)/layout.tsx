@@ -6,7 +6,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }): JSX.Element {
   return (
-    <div className="min-h-screen bg-[#d9d9d9] text-[#1b1b1b] font-mono">
+    <div className="min-h-screen bg-white text-[#1b1b1b] font-mono">
       <Header />
       <main>{children}</main>
     </div>
