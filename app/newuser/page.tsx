@@ -181,10 +181,10 @@ export default function NewUserPage() {
         .eq("id", user.id);
 
       if (updateError) {
-        if (updateError.code === "23505") {
-          setUsernameError("Username already taken");
-          setSaving(false);
-          return;
+      if (updateError.code === "23505") {
+        setUsernameError("Username already taken");
+        setSaving(false);
+        return;
         }
         throw updateError;
       }
