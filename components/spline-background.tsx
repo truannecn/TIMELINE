@@ -18,7 +18,7 @@ export function SplineBackground(): JSX.Element {
           width: '100vw',
           height: '100vh',
           objectFit: 'cover',
-          filter: 'grayscale(40%)',
+          filter: 'grayscale(80%)',
           transform: 'translateX(-5%)',
         }}
       />

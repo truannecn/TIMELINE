@@ -5,8 +5,8 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   await supabase.auth.signOut();
 
-  const { origin } = new URL(request.url);
-  return NextResponse.redirect(`${origin}/login`, {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
+  return NextResponse.redirect(`${siteUrl}/login`, {
     status: 302,
   });
 }
