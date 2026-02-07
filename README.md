@@ -37,6 +37,4 @@ Visit `http://localhost:3000`
 └── supabase/             # DB config & migrations
 ```
 
-## Deploy
-
-Push to GitHub → Import in Vercel → Done.
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/evelynnwu/TIMELINE?utm_source=oss&utm_medium=github&utm_campaign=evelynnwu%2FTIMELINE&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)

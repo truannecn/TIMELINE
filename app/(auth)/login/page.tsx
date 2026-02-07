@@ -26,9 +26,9 @@ export default function LoginPage(): JSX.Element {
           <Link href="/" className="text-2xl font-bold">
             Artfolio
           </Link>
-          <h1 className="text-xl mt-6 mb-2">Welcome back</h1>
+          <h1 className="text-xl mt-6 mb-2">Welcome to Artfolio</h1>
           <p className="text-muted-foreground">
-            Sign in to continue to your portfolio
+            Sign in or create an account to continue
           </p>
         </div>
 

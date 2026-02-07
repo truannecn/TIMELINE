@@ -2,7 +2,7 @@
 
 ## Project Vision
 
-Artfolio is an AI-free artist portfolio and social platform — a hybrid of LinkedIn (professional showcase), Substack (long-form content), and Reddit (interest communities). All uploaded content must pass AI detection: **Sightengine** for images, **GPTZero** for text/essays.
+Artfolio is an AI-free artist portfolio and social platform — a hybrid of LinkedIn (professional showcase), Substack (long-form content), and Reddit (interest communities). All uploaded content must pass AI detection: **Sightengine** for images, **Dedalus AI (Claude Opus 4.5)** for text/essays.
 
 The core philosophy: **empower human creators, not replace them.**
 
@@ -17,7 +17,7 @@ The core philosophy: **empower human creators, not replace them.**
 | Database     | Supabase (PostgreSQL 15)             | Also handles auth, storage, realtime      |
 | Auth         | Supabase Auth                        | OAuth providers (Google, GitHub, Discord) |
 | Storage      | Supabase Storage                     | Images only, with CDN                     |
-| AI Detection | Sightengine (images), GPTZero (text) | Pre-upload validation                     |
+| AI Detection | Sightengine (images), Dedalus/Claude (text) | Pre-upload validation                     |
 | Deployment   | Vercel (FE), Railway (BE)            | Future: containerize BE                   |
 
 ---
@@ -71,19 +71,34 @@ artfolio/
 │   │   └── login/
 │   │       └── page.tsx         # Login page with OAuth buttons
 │   │
+│   ├── api/
+│   │   ├── validate-image/
+│   │   │   └── route.ts         # POST - Sightengine AI detection for images
+│   │   └── validate-text/
+│   │       └── route.ts         # POST - Dedalus/Claude AI detection for essays
+│   │
 │   ├── auth/
 │   │   └── signout/
 │   │       └── route.ts         # POST /auth/signout - signs out user
 │   │
 │   ├── oauth/
 │   │   └── consent/
-│   │       └── route.ts         # OAuth callback - exchanges code for session
+│   │       └── route.ts         # OAuth callback - routes new users to /newuser
+│   │
+│   ├── newuser/
+│   │   └── page.tsx             # New user onboarding (username + avatar)
 │   │
 │   ├── feed/
-│   │   └── page.tsx             # Main feed (protected)
+│   │   └── page.tsx             # Main feed (prioritizes followed users)
+│   │
+│   ├── upload/
+│   │   └── page.tsx             # Upload artwork (with AI detection)
 │   │
 │   └── profile/
-│       └── page.tsx             # User profile (protected)
+│       ├── page.tsx             # Own profile (protected)
+│       └── [username]/
+│           ├── page.tsx         # Public profile view
+│           └── follow-button.tsx # Follow/unfollow client component
 │
 ├── components/
 │   └── ui/                      # shadcn/ui primitives
@@ -97,7 +112,9 @@ artfolio/
 │
 ├── supabase/
 │   └── migrations/
-│       └── 00001_create_profiles.sql  # Profiles table + RLS + triggers
+│       ├── 00001_create_profiles.sql      # Profiles table + RLS + triggers
+│       ├── 00002_create_storage_and_works.sql  # Storage bucket + works table
+│       └── 00003_add_follows_likes_bookmarks.sql  # Social features
 │
 ├── middleware.ts                # Next.js middleware (calls updateSession)
 ├── package.json
@@ -523,11 +540,13 @@ npm run dev
 NEXT_PUBLIC_SUPABASE_URL=https://oaooikqeqijrlfzdwdfs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 
+# AI Detection (required for uploads)
+SIGHTENGINE_API_USER=...
+SIGHTENGINE_API_SECRET=...
+DEDALUS_API_KEY=...  # For essay/text detection via Claude
+
 # Future: when FastAPI backend is added
 # NEXT_PUBLIC_API_URL=http://localhost:8000
-# SIGHTENGINE_API_USER=...
-# SIGHTENGINE_API_SECRET=...
-# GPTZERO_API_KEY=...
 ```
 
 ---
@@ -542,26 +561,42 @@ We're in **Phase 1**. Focus on:
 4. ✅ Supabase Auth integration (Google OAuth)
 5. ⬜ Basic profile CRUD (read done, update pending)
 6. ✅ Next.js app with auth flow
+7. ✅ Image upload with AI detection
+8. ✅ Follow system
+9. ✅ Feed with follow prioritization
 
 **Completed in this phase:**
 
 - Supabase project: `oaooikqeqijrlfzdwdfs.supabase.co`
 - `profiles` table with RLS policies (public read, owner update/insert)
+- `works` table for artwork uploads
+- `follows` table for one-way follow relationships
+- `likes` and `bookmarks` tables (schema ready, UI pending)
 - Auto-create profile trigger on user signup (pulls name + avatar from OAuth)
 - Google OAuth configured and working
-- Protected routes: `/feed`, `/profile`, `/explore`, `/upload`, `/settings`
-- OAuth flow: `/login` → Google → `/oauth/consent` → `/feed`
-- Sign out: POST `/auth/signout` → `/login`
+- Protected routes: `/feed`, `/profile`, `/upload`, `/newuser`
+- OAuth flow: `/login` → Google → `/oauth/consent` → `/newuser` (new users) or `/feed` (existing)
+- New user onboarding: `/newuser` page for username + avatar setup
+- Sign out button in header → POST `/auth/signout` → `/login`
+- Public profiles: `/profile/[username]` with follow button
+- Follow/unfollow functionality with follower/following counts
+- Feed prioritizes works from followed users
+- Image upload with Sightengine AI detection (rejects AI-generated images)
+- Google profile images use `referrerPolicy="no-referrer"` to load correctly
+- Essay/text post support with cover images
+- Work detail page at `/work/[id]` for viewing essays and images
+- Text AI detection via Dedalus (Claude Opus 4.5) - rejects AI-generated essays
+- "+ New" button replaces "Upload" across app
 
 **Do not build yet:**
 
 - Communities
 - Comments
-- Feed algorithms
 - Notifications
 - Search
+- Likes/bookmarks UI (schema exists)
 
-Keep the scope minimal. Get auth → profile → single image upload working end-to-end first.
+Keep the scope minimal. Core loop working: auth → onboarding → upload → feed → follow.
 
 ---
 
@@ -593,21 +628,31 @@ supabase gen types typescript --local    # Generate TS types from schema
 | ---------- | ---------------------------------- | --------------------------------------------- |
 | 2025-02-06 | FastAPI over Flask                 | Async-first, auto OpenAPI, better typing      |
 | 2025-02-06 | Supabase over raw Postgres         | Auth + Storage + Realtime bundled, faster MVP |
-| 2025-02-06 | Sightengine + GPTZero              | Best-in-class for respective content types    |
+| 2025-02-06 | Sightengine for images             | Best-in-class AI image detection              |
 | 2025-02-06 | Feature folders over layer folders | Easier to reason about, scales better         |
 | 2025-02-06 | Cursor pagination                  | Handles real-time feeds, no offset drift      |
 | 2026-02-06 | Next.js-first MVP                  | Defer FastAPI until we need custom backend logic |
 | 2026-02-06 | OAuth callback at `/oauth/consent` | Clearer naming, separate from auth group      |
 | 2026-02-06 | Profile auto-creation via trigger  | No extra API call needed on first login       |
+| 2026-02-06 | New user onboarding at `/newuser`  | Separate username setup from OAuth flow       |
+| 2026-02-06 | One-way follows (not mutual)       | Twitter-style, simpler than friend requests   |
+| 2026-02-06 | Feed prioritizes followed users    | Client-side sort after fetch, simple for MVP  |
+| 2026-02-06 | AI detection via Next.js API route | Keep secrets server-side, validate before storage |
+| 2026-02-06 | 75% threshold for AI rejection     | Balance false positives vs letting AI through |
+| 2026-02-06 | Dedalus + Claude Opus for text     | LLM-based detection, no GPTZero API needed    |
+| 2026-02-06 | 65% threshold for text AI rejection | Lower threshold for text vs images            |
 
 ---
 
 ## Open Questions
 
 - [x] What OAuth providers beyond Google? → GitHub and Discord buttons exist, need to configure in Supabase Dashboard
+- [x] New user onboarding flow? → `/newuser` page after first OAuth login
+- [x] How to handle Google profile image loading? → `referrerPolicy="no-referrer"` on img tags
 - [ ] Storage limits per user?
 - [ ] Appeals process for false positive AI detection?
 - [ ] Monetization model? (affects schema for subscriptions)
 - [ ] Mobile app timeline? (affects API design)
 - [ ] Profile edit page implementation?
 - [ ] When to add FastAPI backend vs continue with Next.js API routes?
+- [ ] Likes/bookmarks UI implementation?
