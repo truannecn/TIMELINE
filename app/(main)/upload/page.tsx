@@ -22,7 +22,10 @@ export default function NewWorkPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
-  const [workType, setWorkType] = useState<"image" | "essay">("image");
+  const typeParam = searchParams.get('type');
+  const [workType, setWorkType] = useState<"image" | "essay">(
+    typeParam === 'essay' ? 'essay' : 'image'
+  );
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [filters, setFilters] = useState<ImageFilters[]>([]);

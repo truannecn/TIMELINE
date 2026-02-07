@@ -53,11 +53,19 @@ export default function CreateDropdown() {
             <span>✱</span>
             <span>thread</span>
           </Link>
-          <Link
-            href="/upload"
-            onClick={() => setIsOpen(false)}
+          <button
+            onClick={handlePostClick}
             className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm hover:bg-black/5 transition-colors"
           >
+            <span>📝</span>
+            <span>post</span>
+          </button>
+        </div>
+      )}
+
+      {showPostModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowPostModal(false)}>
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl text-center mb-2">create a post</h2>
             <p className="text-sm text-black/50 text-center mb-8">
               what would you like to share?
@@ -83,6 +91,6 @@ export default function CreateDropdown() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
