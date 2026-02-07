@@ -4,8 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { uploadFileWithPresignedUrl, deleteFile } from "@/lib/amplify/storage";
-
-type WorkType = "image" | "essay";
+import ImageEditor from "@/app/components/image-editor";
+import {
+  ImageFilters,
+  getDefaultFilters,
+  applyFiltersToFile,
+} from "@/lib/image-filters";
 
 interface Interest {
   id: string;
@@ -18,12 +22,12 @@ export default function NewWorkPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
-  const [workType, setWorkType] = useState<WorkType>("image");
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [filters, setFilters] = useState<ImageFilters[]>([]);
+  const [showEditor, setShowEditor] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [content, setContent] = useState(""); // Essay content
   const [uploading, setUploading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,68 +71,77 @@ export default function NewWorkPage() {
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
 
     const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!validTypes.includes(selectedFile.type)) {
-      setError("Please select a valid image file (JPEG, PNG, GIF, or WebP)");
+    const maxFiles = 10;
+
+    // Validate number of files
+    if (selectedFiles.length > maxFiles) {
+      setError(`You can upload up to ${maxFiles} images`);
       return;
     }
 
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      setError("File size must be less than 10MB");
-      return;
+    // Validate each file
+    for (const file of selectedFiles) {
+      if (!validTypes.includes(file.type)) {
+        setError("Please select valid image files (JPEG, PNG, GIF, or WebP)");
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        setError("Each file must be less than 10MB");
+        return;
+      }
     }
 
-    setFile(selectedFile);
+    setFiles(selectedFiles);
     setError(null);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(selectedFile);
+    // Create preview for each file
+    const newPreviews: string[] = [];
+    const newFilters: ImageFilters[] = [];
+    let loaded = 0;
+
+    selectedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        newPreviews.push(e.target?.result as string);
+        newFilters.push(getDefaultFilters());
+        loaded++;
+
+        if (loaded === selectedFiles.length) {
+          setPreviews(newPreviews);
+          setFilters(newFilters);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const resetForm = () => {
-    setFile(null);
-    setPreview(null);
+    setFiles([]);
+    setPreviews([]);
+    setFilters([]);
+    setShowEditor(false);
     setTitle("");
     setDescription("");
-    setContent("");
     setError(null);
     setSelectedInterests(new Set());
     setPrimaryInterest(null);
   };
 
-  const handleWorkTypeChange = (newType: WorkType) => {
-    if (newType !== workType) {
-      resetForm();
-      setWorkType(newType);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!file) {
-      setError(workType === "image" ? "Please select an image" : "Please select a cover image");
+    if (files.length === 0) {
+      setError("Please select at least one image");
       return;
     }
 
     if (!title.trim()) {
       setError("Please enter a title");
-      return;
-    }
-
-    if (workType === "essay" && !content.trim()) {
-      setError("Please enter your essay content");
-      return;
-    }
-
-    if (workType === "essay" && content.trim().length < 100) {
-      setError("Essays must be at least 100 characters");
       return;
     }
 
@@ -157,51 +170,28 @@ export default function NewWorkPage() {
         return;
       }
 
-      // Validate image with AI detection
+      // Validate all images with AI detection
       setValidating(true);
-      const validateForm = new FormData();
-      validateForm.append("file", file);
+      for (let i = 0; i < files.length; i++) {
+        const validateForm = new FormData();
+        validateForm.append("file", files[i]);
 
-      const validateResponse = await fetch("/api/validate-image", {
-        method: "POST",
-        body: validateForm,
-      });
-
-      const validateResult = await validateResponse.json();
-
-      if (!validateResponse.ok) {
-        setValidating(false);
-        throw new Error(validateResult.error || "Failed to validate image");
-      }
-
-      if (!validateResult.passed) {
-        setValidating(false);
-        setError(
-          `This image appears to be AI-generated (confidence: ${Math.round(validateResult.score * 100)}%). Artfolio only accepts human-created artwork.`
-        );
-        setUploading(false);
-        return;
-      }
-
-      // For essays, also validate the text content
-      if (workType === "essay") {
-        const textValidateResponse = await fetch("/api/validate-text", {
+        const validateResponse = await fetch("/api/validate-image", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: content.trim() }),
+          body: validateForm,
         });
 
-        const textValidateResult = await textValidateResponse.json();
+        const validateResult = await validateResponse.json();
 
-        if (!textValidateResponse.ok) {
+        if (!validateResponse.ok) {
           setValidating(false);
-          throw new Error(textValidateResult.error || "Failed to validate text");
+          throw new Error(validateResult.error || `Failed to validate image ${i + 1}`);
         }
 
-        if (!textValidateResult.passed) {
+        if (!validateResult.passed) {
           setValidating(false);
           setError(
-            `This essay appears to be AI-generated (confidence: ${Math.round(textValidateResult.score * 100)}%). Artfolio only accepts human-written content.`
+            `Image ${i + 1} appears to be AI-generated (confidence: ${Math.round(validateResult.score * 100)}%). Artfolio only accepts human-created artwork.`
           );
           setUploading(false);
           return;
@@ -210,43 +200,64 @@ export default function NewWorkPage() {
 
       setValidating(false);
 
-      // Upload image using pre-signed URL
-      let uploadResult;
-      try {
-        uploadResult = await uploadFileWithPresignedUrl(file);
-      } catch (uploadError) {
-        throw new Error(
-          uploadError instanceof Error
-            ? uploadError.message
-            : "Failed to upload image"
+      // Apply filters and upload all images
+      const uploadedImages: Array<{
+        path: string;
+        url: string;
+        width: number;
+        height: number;
+      }> = [];
+
+      for (let i = 0; i < files.length; i++) {
+        // Apply filters to the file
+        const filteredFile = await applyFiltersToFile(files[i], filters[i]);
+
+        // Upload the filtered image
+        let uploadResult;
+        try {
+          uploadResult = await uploadFileWithPresignedUrl(filteredFile);
+        } catch (uploadError) {
+          throw new Error(
+            uploadError instanceof Error
+              ? uploadError.message
+              : `Failed to upload image ${i + 1}`
+          );
+        }
+
+        // Get image dimensions
+        const img = new Image();
+        img.src = previews[i];
+        const dimensions = await new Promise<{ width: number; height: number }>(
+          (resolve) => {
+            img.onload = () => {
+              resolve({ width: img.naturalWidth, height: img.naturalHeight });
+            };
+          }
         );
+
+        uploadedImages.push({
+          path: uploadResult.path,
+          url: uploadResult.url,
+          width: dimensions.width,
+          height: dimensions.height,
+        });
       }
 
-      const filePath = uploadResult.path;
-      const publicUrl = uploadResult.url;
-
-      // Get image dimensions
-      const img = new Image();
-      img.src = preview!;
-      await new Promise((resolve) => {
-        img.onload = resolve;
-      });
+      // First image is the cover image
+      const coverImage = uploadedImages[0];
+      const additionalImages = uploadedImages.slice(1);
 
       // Insert into works table
       const workData: Record<string, unknown> = {
         author_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
-        image_path: filePath,
-        image_url: publicUrl,
-        width: img.naturalWidth,
-        height: img.naturalHeight,
-        work_type: workType,
+        image_path: coverImage.path,
+        image_url: coverImage.url,
+        width: coverImage.width,
+        height: coverImage.height,
+        work_type: "image",
       };
-
-      if (workType === "essay") {
-        workData.content = content.trim();
-      }
 
       const { data: insertedWork, error: insertError } = await supabase
         .from("works")
@@ -255,11 +266,13 @@ export default function NewWorkPage() {
         .single();
 
       if (insertError || !insertedWork) {
-        // Clean up uploaded file if database insert fails
-        try {
-          await deleteFile(filePath);
-        } catch {
-          console.error("Failed to clean up uploaded file");
+        // Clean up uploaded files if database insert fails
+        for (const img of uploadedImages) {
+          try {
+            await deleteFile(img.path);
+          } catch {
+            console.error("Failed to clean up uploaded file:", img.path);
+          }
         }
         throw insertError || new Error("Failed to create work");
       }
@@ -292,6 +305,26 @@ export default function NewWorkPage() {
         }
       }
 
+      // Insert additional images into work_images table
+      if (additionalImages.length > 0) {
+        const workImages = additionalImages.map((img, index) => ({
+          work_id: insertedWork.id,
+          image_path: img.path,
+          image_url: img.url,
+          width: img.width,
+          height: img.height,
+          display_order: index + 1, // Start from 1 since cover is 0
+        }));
+
+        const { error: imagesError } = await supabase
+          .from("work_images")
+          .insert(workImages);
+
+        if (imagesError) {
+          console.error("Failed to save additional images:", imagesError);
+        }
+      }
+
       router.push("/explore");
       router.refresh();
     } catch (err) {
@@ -304,52 +337,16 @@ export default function NewWorkPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">New Work</h1>
-
-      {/* Work Type Selector */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">Type</label>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => handleWorkTypeChange("image")}
-            className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors ${
-              workType === "image"
-                ? "bg-foreground text-background"
-                : "border border-border hover:bg-muted"
-            }`}
-          >
-            Image
-          </button>
-          <button
-            type="button"
-            onClick={() => handleWorkTypeChange("essay")}
-            className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-colors ${
-              workType === "essay"
-                ? "bg-foreground text-background"
-                : "border border-border hover:bg-muted"
-            }`}
-          >
-            Essay
-          </button>
-        </div>
-      </div>
+      <h1 className="text-2xl font-bold mb-6">Upload Artwork</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Image upload area */}
         <div>
-          <label className="block text-sm font-medium mb-2">
-            {workType === "image" ? "Artwork" : "Cover Image"}
-            {workType === "essay" && (
-              <span className="text-muted-foreground font-normal ml-1">
-                (required for essays)
-              </span>
-            )}
-          </label>
+          <label className="block text-sm font-medium mb-2">Artwork</label>
           <div
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              preview
+              previews.length > 0
                 ? "border-border"
                 : "border-muted-foreground/25 hover:border-muted-foreground/50"
             }`}
@@ -358,34 +355,70 @@ export default function NewWorkPage() {
               ref={fileInputRef}
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
+              multiple
               onChange={handleFileSelect}
               className="hidden"
             />
 
-            {preview ? (
+            {previews.length > 0 ? (
               <div className="space-y-4">
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="max-h-64 mx-auto rounded"
-                />
+                {/* Show thumbnails of all images */}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {previews.map((previewUrl, index) => (
+                    <img
+                      key={index}
+                      src={previewUrl}
+                      alt={`Preview ${index + 1}`}
+                      className="h-32 w-32 object-cover rounded border border-border"
+                    />
+                  ))}
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  Click to change image
+                  {previews.length} image{previews.length > 1 ? "s" : ""} selected • Click to change
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="text-4xl">{workType === "image" ? "🎨" : "📝"}</div>
+                <div className="text-4xl">🎨</div>
                 <p className="text-muted-foreground">
-                  Click to select {workType === "image" ? "an image" : "a cover image"}
+                  Click to select image(s)
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  JPEG, PNG, GIF, or WebP • Max 10MB
+                  JPEG, PNG, GIF, or WebP • Max 10MB each • Up to 10 images
                 </p>
               </div>
             )}
           </div>
         </div>
+
+        {/* Edit button */}
+        {previews.length > 0 && !showEditor && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowEditor(true)}
+              className="px-6 py-2 border border-border rounded-md hover:bg-muted transition-colors text-sm font-medium"
+            >
+              Edit Images
+            </button>
+          </div>
+        )}
+
+        {/* Image Editor */}
+        {showEditor && (
+          <ImageEditor
+            files={files}
+            previews={previews}
+            filters={filters}
+            onFiltersChange={(index, newFilters) => {
+              const updatedFilters = [...filters];
+              updatedFilters[index] = newFilters;
+              setFilters(updatedFilters);
+            }}
+            onDone={() => setShowEditor(false)}
+            onBack={() => setShowEditor(false)}
+          />
+        )}
 
         {/* Title */}
         <div>
@@ -397,57 +430,30 @@ export default function NewWorkPage() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={workType === "image" ? "Give your artwork a title" : "Essay title"}
+            placeholder="Give your artwork a title"
             className="w-full px-4 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20"
             maxLength={200}
           />
         </div>
 
-        {/* Caption (for images) or hidden for essays */}
-        {workType === "image" && (
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium mb-2">
-              Caption (optional)
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Tell us about this piece..."
-              rows={3}
-              maxLength={300}
-              className="w-full px-4 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20 resize-none"
-            />
-            <p className="text-xs text-muted-foreground mt-1 text-right">
-              {description.length}/300
-            </p>
-          </div>
-        )}
-
-        {/* Essay content */}
-        {workType === "essay" && (
-          <div>
-            <label htmlFor="content" className="block text-sm font-medium mb-2">
-              Essay Content
-            </label>
-            <textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Paste or write your essay here..."
-              rows={12}
-              className="w-full px-4 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20 resize-y font-mono text-sm"
-            />
-            <p className="text-xs text-muted-foreground mt-1 text-right">
-              {content.length.toLocaleString()} characters
-              {content.length < 100 && content.length > 0 && (
-                <span className="text-amber-600 ml-2">
-                  (minimum 100)
-                </span>
-              )}
-            </p>
-          </div>
-        )}
+        {/* Caption */}
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium mb-2">
+            Caption (optional)
+          </label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Tell us about this piece..."
+            rows={3}
+            maxLength={300}
+            className="w-full px-4 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20 resize-none"
+          />
+          <p className="text-xs text-muted-foreground mt-1 text-right">
+            {description.length}/300
+          </p>
+        </div>
 
         {/* Interest categories */}
         <div>
@@ -503,18 +509,14 @@ export default function NewWorkPage() {
         {/* Submit button */}
         <button
           type="submit"
-          disabled={uploading || validating || !file || selectedInterests.size === 0}
+          disabled={uploading || validating || files.length === 0 || selectedInterests.size === 0}
           className="w-full py-3 bg-foreground text-background rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {validating
-            ? workType === "essay"
-              ? "Checking image & text for AI content..."
-              : "Checking for AI content..."
+            ? "Checking for AI content..."
             : uploading
-              ? "Publishing..."
-              : workType === "image"
-                ? "Upload Artwork"
-                : "Publish Essay"}
+              ? "Uploading..."
+              : "Upload Artwork"}
         </button>
       </form>
     </div>

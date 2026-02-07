@@ -6,6 +6,7 @@ import { BookmarkButton } from "./bookmark-button";
 import { CommentsSection } from "./comments-section";
 import { Avatar } from "@/components/avatar";
 import { VersionHistorySection } from "./version-history-section";
+import ImageCarousel from "@/app/components/image-carousel";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -15,20 +16,26 @@ export default async function WorkPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // Fetch user and work in parallel
-  const [{ data: { user } }, { data: work, error }] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from("works")
-      .select(
-        `
+  // Fetch user, work, and additional images in parallel
+  const [{ data: { user } }, { data: work, error }, { data: additionalImages }] =
+    await Promise.all([
+      supabase.auth.getUser(),
+      supabase
+        .from("works")
+        .select(
+          `
         *,
         author:profiles!works_author_id_fkey(id, username, display_name, avatar_url)
       `
-      )
-      .eq("id", id)
-      .single(),
-  ]);
+        )
+        .eq("id", id)
+        .single(),
+      supabase
+        .from("work_images")
+        .select("id, image_url, image_path, width, height, display_order")
+        .eq("work_id", id)
+        .order("display_order", { ascending: true }),
+    ]);
 
   if (error || !work) {
     notFound();
@@ -108,18 +115,43 @@ export default async function WorkPage({ params }: Props) {
       ? Math.max(1, Math.ceil(work.content.split(/\s+/).length / 200))
       : null;
 
+  // Build images array for carousel (cover image + additional images)
+  const allImages = [];
+  if (work.image_url) {
+    allImages.push({
+      url: work.image_url,
+      alt: work.title,
+      width: work.width,
+      height: work.height,
+    });
+  }
+  if (additionalImages && additionalImages.length > 0) {
+    additionalImages.forEach((img) => {
+      allImages.push({
+        url: img.image_url,
+        alt: work.title,
+        width: img.width || undefined,
+        height: img.height || undefined,
+      });
+    });
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      {/* Cover image */}
-      {work.image_url && (
+      {/* Image(s) - use carousel if multiple images */}
+      {allImages.length > 0 && (
         <div className="mb-8">
-          <img
-            src={work.image_url}
-            alt={work.title}
-            className={`w-full rounded-lg ${
-              work.work_type === "essay" ? "max-h-80 object-cover" : ""
-            }`}
-          />
+          {allImages.length === 1 ? (
+            <img
+              src={allImages[0].url}
+              alt={allImages[0].alt}
+              className={`w-full rounded-lg ${
+                work.work_type === "essay" ? "max-h-80 object-cover" : ""
+              }`}
+            />
+          ) : (
+            <ImageCarousel images={allImages} />
+          )}
         </div>
       )}
 
