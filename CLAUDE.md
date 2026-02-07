@@ -28,6 +28,7 @@ Artfolio is an AI-free artist portfolio and social platform. All uploaded conten
 ```
 app/
 ├── (auth)/login/           # Login page
+├── (auth)/register/        # Register page (new user signup)
 ├── (main)/                 # Protected routes with shared header layout
 │   ├── explore/            # Browse works (prioritizes followed users)
 │   ├── profile/            # Own profile
@@ -139,6 +140,7 @@ const { count } = await supabase
 |-------|---------|
 | `/` | Landing page |
 | `/login` | OAuth login (Google) |
+| `/register` | New user signup (Google OAuth) |
 | `/newuser` | New user onboarding |
 | `/explore` | Browse/feed (protected) |
 | `/profile` | Own profile (protected) |

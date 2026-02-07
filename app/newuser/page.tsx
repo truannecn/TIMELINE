@@ -2,14 +2,26 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { uploadFileWithPresignedUrl } from "@/lib/amplify/storage";
+
+const TRUSTED_AVATAR_DOMAINS = [
+  "lh3.googleusercontent.com", // Google OAuth
+  "googleusercontent.com",
+];
+
+function isTrustedAvatarUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    return TRUSTED_AVATAR_DOMAINS.some((domain) => hostname.endsWith(domain));
+  } catch {
+    return false;
+  }
+}
 
 export default function NewUserPage() {
   const router = useRouter();
   const supabase = createClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,8 +37,6 @@ export default function NewUserPage() {
   const [checkingUsername, setCheckingUsername] = useState(false);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Load user and profile on mount
   useEffect(() => {
@@ -48,7 +58,7 @@ export default function NewUserPage() {
         .eq("id", user.id)
         .single();
 
-      // If user already has username, redirect to explore
+      // If user already has username, redirect to feed
       if (profile?.username) {
         router.push("/explore");
         return;
@@ -125,29 +135,6 @@ export default function NewUserPage() {
     }
   }
 
-  // Handle avatar file selection
-  function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!validTypes.includes(file.type)) {
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      return;
-    }
-
-    setAvatarFile(file);
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setAvatarPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  }
-
   // Handle form submission
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -165,18 +152,8 @@ export default function NewUserPage() {
     setSaving(true);
 
     try {
-      let finalAvatarUrl = avatarUrl;
-      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim() || null;
-
-      // Upload new avatar if selected
-      if (avatarFile) {
-        try {
-          const uploadResult = await uploadFileWithPresignedUrl(avatarFile);
-          finalAvatarUrl = uploadResult.url;
-        } catch {
-          throw new Error("Failed to upload avatar");
-        }
-      }
+      const displayName =
+        [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") || null;
 
       // Update profile
       const { error: updateError } = await supabase
@@ -185,15 +162,15 @@ export default function NewUserPage() {
           username: username.toLowerCase(),
           display_name: displayName,
           bio: bio.trim() || null,
-          avatar_url: finalAvatarUrl,
+          avatar_url: avatarUrl && isTrustedAvatarUrl(avatarUrl) ? avatarUrl : null,
         })
         .eq("id", user.id);
 
       if (updateError) {
-      if (updateError.code === "23505") {
-        setUsernameError("Username already taken");
-        setSaving(false);
-        return;
+        if (updateError.code === "23505") {
+          setUsernameError("Username already taken");
+          setSaving(false);
+          return;
         }
         throw updateError;
       }
@@ -220,7 +197,7 @@ export default function NewUserPage() {
   const isValid = username.length >= 3 && !usernameError && !checkingUsername && birthday !== "";
 
   return (
-    <div className="h-screen bg-[#516e73] flex flex-col lg:flex-row overflow-hidden">
+    <div className="min-h-screen bg-[#516e73] flex flex-col lg:flex-row overflow-y-auto">
       {/* Left section — branding + text */}
       <div className="flex-1 flex flex-col justify-between p-8 sm:p-12 lg:p-16">
         <p className="font-[family-name:var(--font-jetbrains-mono)] text-white text-6xl sm:text-8xl lg:text-[128px] leading-none">
@@ -243,33 +220,6 @@ export default function NewUserPage() {
       <div className="w-full lg:w-[55%] flex items-center justify-center p-4 sm:p-8 lg:py-8 lg:px-12">
         <div className="bg-white/70 rounded-[43px] w-full max-w-[650px] px-8 sm:px-14 py-8 sm:py-10">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Avatar */}
-            <div className="flex justify-center mb-2">
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="relative h-24 w-24 rounded-full bg-white/50 flex items-center justify-center cursor-pointer hover:bg-white/70 transition-colors overflow-hidden"
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handleAvatarSelect}
-                  className="hidden"
-                />
-                {avatarPreview || avatarUrl ? (
-                  <img
-                    src={avatarPreview || avatarUrl || ""}
-                    alt="Avatar"
-                    className="h-full w-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <span className="text-3xl text-black/30">+</span>
-                )}
-              </div>
-            </div>
-            <p className="text-center text-sm text-black/50 mb-4">tap to add photo</p>
-
             {/* First Name */}
             <div>
               <label className="block font-['Jeju_Myeongjo',serif] text-black text-base mb-1">

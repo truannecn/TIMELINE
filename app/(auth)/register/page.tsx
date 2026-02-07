@@ -5,18 +5,17 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-function LoginContent(): JSX.Element {
+function RegisterContent(): JSX.Element {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
-  const redirect = searchParams.get("redirect") ?? "/explore";
 
-  const handleOAuthLogin = async (provider: "google") => {
+  const handleOAuthSignUp = async () => {
     const supabase = createClient();
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     await supabase.auth.signInWithOAuth({
-      provider,
+      provider: "google",
       options: {
-        redirectTo: `${siteUrl}/oauth/consent?next=${redirect}`,
+        redirectTo: `${siteUrl}/oauth/consent?next=/newuser`,
       },
     });
   };
@@ -30,26 +29,26 @@ function LoginContent(): JSX.Element {
 
       {/* Heading */}
       <h1 className="font-[family-name:var(--font-jetbrains-mono)] text-white text-3xl sm:text-5xl leading-none mb-6">
-        welcome back
+        welcome to timeline
       </h1>
 
       {/* Subheading */}
       <p className="font-['Jeju_Myeongjo',serif] text-white text-2xl sm:text-[40px] leading-none mb-12">
-        sign in to continue
+        sign up to continue
       </p>
 
       {/* Error message */}
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm max-w-md w-full text-center">
           {error === "auth_callback_error"
-            ? "There was an error signing in. Please try again."
+            ? "There was an error signing up. Please try again."
             : "An error occurred. Please try again."}
         </div>
       )}
 
       {/* Continue with Google button */}
       <button
-        onClick={() => handleOAuthLogin("google")}
+        onClick={handleOAuthSignUp}
         className="flex items-center justify-center gap-3 bg-white rounded-md px-12 py-3 w-full max-w-[471px] hover:bg-gray-50 transition-colors"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -75,21 +74,18 @@ function LoginContent(): JSX.Element {
         </span>
       </button>
 
-      {/* Register link */}
-      <p className="mt-6 font-['Jeju_Myeongjo',serif] text-[#3e3b3b] text-sm">
-        new user? create account{" "}
-        <Link
-          href="/register"
-          className="underline hover:text-white/80 transition-colors"
-        >
-          here
-        </Link>
-      </p>
+      {/* Back to home link */}
+      <Link
+        href="/"
+        className="mt-6 font-['Jeju_Myeongjo',serif] text-[#3e3b3b] text-sm hover:text-white/80 transition-colors"
+      >
+        back to home
+      </Link>
     </div>
   );
 }
 
-export default function LoginPage(): JSX.Element {
+export default function RegisterPage(): JSX.Element {
   return (
     <Suspense
       fallback={
@@ -100,7 +96,7 @@ export default function LoginPage(): JSX.Element {
         </div>
       }
     >
-      <LoginContent />
+      <RegisterContent />
     </Suspense>
   );
 }
