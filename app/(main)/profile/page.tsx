@@ -72,6 +72,7 @@ export default async function ProfilePage({ searchParams }: Props) {
     .eq("follower_id", user.id);
 
   const displayWorks = activeTab === "saved" ? savedWorks : works;
+  const postsCount = works?.length || 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -93,6 +94,10 @@ export default async function ProfilePage({ searchParams }: Props) {
           {profile?.bio && <p className="mt-2">{profile.bio}</p>}
 
           <div className="flex gap-4 mt-3 text-sm">
+            <span>
+              <strong>{postsCount}</strong>{" "}
+              <span className="text-muted-foreground">posts</span>
+            </span>
             <span>
               <strong>{followersCount || 0}</strong>{" "}
               <span className="text-muted-foreground">followers</span>

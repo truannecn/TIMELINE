@@ -2,13 +2,14 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
 import { uploadFileWithPresignedUrl } from "@/lib/amplify/storage";
 
 export default function NewUserPage() {
   const router = useRouter();
   const supabase = createClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +25,8 @@ export default function NewUserPage() {
   const [checkingUsername, setCheckingUsername] = useState(false);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Load user and profile on mount
   useEffect(() => {
@@ -45,7 +48,7 @@ export default function NewUserPage() {
         .eq("id", user.id)
         .single();
 
-      // If user already has username, redirect to feed
+      // If user already has username, redirect to explore
       if (profile?.username) {
         router.push("/explore");
         return;
@@ -122,6 +125,29 @@ export default function NewUserPage() {
     }
   }
 
+  // Handle avatar file selection
+  function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return;
+    }
+
+    setAvatarFile(file);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setAvatarPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+
   // Handle form submission
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -140,14 +166,12 @@ export default function NewUserPage() {
 
     try {
       let finalAvatarUrl = avatarUrl;
+      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim() || null;
 
       // Upload new avatar if selected
       if (avatarFile) {
-        const fileExt = avatarFile.name.split(".").pop();
-        const storagePath = `${user.id}/avatar.${fileExt}`;
-
         try {
-          const uploadResult = await uploadFile(avatarFile, storagePath);
+          const uploadResult = await uploadFileWithPresignedUrl(avatarFile);
           finalAvatarUrl = uploadResult.url;
         } catch {
           throw new Error("Failed to upload avatar");
@@ -161,7 +185,7 @@ export default function NewUserPage() {
           username: username.toLowerCase(),
           display_name: displayName,
           bio: bio.trim() || null,
-          avatar_url: avatarUrl,
+          avatar_url: finalAvatarUrl,
         })
         .eq("id", user.id);
 
@@ -174,8 +198,8 @@ export default function NewUserPage() {
         throw updateError;
       }
 
-      // Redirect to feed
-      router.push("/feed");
+      // Redirect to explore
+      router.push("/explore");
     } catch (error) {
       console.error("Error saving profile:", error);
       alert("Something went wrong. Please try again.");
@@ -219,6 +243,33 @@ export default function NewUserPage() {
       <div className="w-full lg:w-[55%] flex items-center justify-center p-4 sm:p-8 lg:py-8 lg:px-12">
         <div className="bg-white/70 rounded-[43px] w-full max-w-[650px] px-8 sm:px-14 py-8 sm:py-10">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Avatar */}
+            <div className="flex justify-center mb-2">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="relative h-24 w-24 rounded-full bg-white/50 flex items-center justify-center cursor-pointer hover:bg-white/70 transition-colors overflow-hidden"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
+                />
+                {avatarPreview || avatarUrl ? (
+                  <img
+                    src={avatarPreview || avatarUrl || ""}
+                    alt="Avatar"
+                    className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="text-3xl text-black/30">+</span>
+                )}
+              </div>
+            </div>
+            <p className="text-center text-sm text-black/50 mb-4">tap to add photo</p>
+
             {/* First Name */}
             <div>
               <label className="block font-['Jeju_Myeongjo',serif] text-black text-base mb-1">

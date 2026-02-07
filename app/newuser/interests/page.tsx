@@ -4,26 +4,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const INTERESTS = [
-  "Painting",
-  "Photography",
-  "Digital Art",
-  "Sculpture",
-  "Illustration",
-  "Drawing",
-  "Graphic Design",
-  "Animation",
-  "Film",
-  "Music",
-  "Writing",
-  "Poetry",
-  "Architecture",
-  "Fashion",
-  "Ceramics",
-  "Printmaking",
-  "Mixed Media",
-  "Textile Art",
-];
+interface Interest {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 export default function InterestsPage() {
   const router = useRouter();
@@ -31,11 +16,12 @@ export default function InterestsPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [interests, setInterests] = useState<Interest[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // Check auth on mount
+  // Fetch interests and user's existing selections on mount
   useEffect(() => {
-    async function checkUser() {
+    async function init() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -45,19 +31,39 @@ export default function InterestsPage() {
         return;
       }
 
+      // Fetch all interests from database
+      const { data: interestsData } = await supabase
+        .from("interests")
+        .select("id, name, slug")
+        .order("name");
+
+      if (interestsData) {
+        setInterests(interestsData);
+      }
+
+      // Fetch user's existing interest selections
+      const { data: userInterests } = await supabase
+        .from("user_interests")
+        .select("interest_id")
+        .eq("user_id", user.id);
+
+      if (userInterests && userInterests.length > 0) {
+        setSelected(new Set(userInterests.map((ui) => ui.interest_id)));
+      }
+
       setLoading(false);
     }
 
-    checkUser();
+    init();
   }, [supabase, router]);
 
-  function toggleInterest(interest: string) {
+  function toggleInterest(interestId: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(interest)) {
-        next.delete(interest);
+      if (next.has(interestId)) {
+        next.delete(interestId);
       } else {
-        next.add(interest);
+        next.add(interestId);
       }
       return next;
     });
@@ -65,8 +71,30 @@ export default function InterestsPage() {
 
   async function handleDone() {
     setSaving(true);
-    // TODO: Save selected interests to database when schema supports it
-    router.push("/feed");
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    // Delete existing user interests for idempotency
+    await supabase.from("user_interests").delete().eq("user_id", user.id);
+
+    // Insert new selections
+    if (selected.size > 0) {
+      const inserts = Array.from(selected).map((interestId) => ({
+        user_id: user.id,
+        interest_id: interestId,
+      }));
+
+      await supabase.from("user_interests").insert(inserts);
+    }
+
+    router.push("/explore");
   }
 
   if (loading) {
@@ -112,20 +140,20 @@ export default function InterestsPage() {
           {/* Interest tags grid */}
           <div className="flex-1 overflow-y-auto">
             <div className="grid grid-cols-3 gap-3 justify-items-center">
-              {INTERESTS.map((interest) => {
-                const isSelected = selected.has(interest);
+              {interests.map((interest) => {
+                const isSelected = selected.has(interest.id);
                 return (
                   <button
-                    key={interest}
+                    key={interest.id}
                     type="button"
-                    onClick={() => toggleInterest(interest)}
+                    onClick={() => toggleInterest(interest.id)}
                     className={`w-full h-[53px] rounded-[20px] font-[family-name:var(--font-jetbrains-mono)] text-white text-sm sm:text-base transition-colors ${
                       isSelected
                         ? "bg-[#3f5357]"
                         : "bg-[rgba(25,37,71,0.2)] hover:bg-[rgba(25,37,71,0.35)]"
                     }`}
                   >
-                    {interest}
+                    {interest.name}
                   </button>
                 );
               })}

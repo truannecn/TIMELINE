@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import ExploreFeed from "./explore-feed";
 
 export default async function ExplorePage(): Promise<JSX.Element> {
   const supabase = await createClient();
@@ -26,7 +27,32 @@ export default async function ExplorePage(): Promise<JSX.Element> {
 
   const followingIds = new Set(followingData?.map((f) => f.following_id) || []);
 
-  const { data: works } = await supabase
+  // Get user's interest preferences
+  const { data: userInterests } = user
+    ? await supabase
+        .from("user_interests")
+        .select("interest_id")
+        .eq("user_id", user.id)
+    : { data: null };
+
+  const userInterestIds = userInterests?.map((ui) => ui.interest_id) || [];
+
+  // Get work IDs that match user's interests (if user has interests)
+  let matchingWorkIds: string[] | null = null;
+  if (userInterestIds.length > 0) {
+    const { data: matchingWorks } = await supabase
+      .from("work_interests")
+      .select("work_id")
+      .in("interest_id", userInterestIds);
+
+    if (matchingWorks) {
+      const workIdSet = new Set(matchingWorks.map((w) => w.work_id).filter((id): id is string => id !== null));
+      matchingWorkIds = Array.from(workIdSet);
+    }
+  }
+
+  // Build works query with optional interest filtering
+  let worksQuery = supabase
     .from("works")
     .select(
       `
@@ -40,7 +66,14 @@ export default async function ExplorePage(): Promise<JSX.Element> {
       author_id,
       author:profiles!works_author_id_fkey(id, username, display_name, avatar_url)
     `
-    )
+    );
+
+  // Filter by matching interests if user has preferences
+  if (matchingWorkIds !== null) {
+    worksQuery = worksQuery.in("id", matchingWorkIds);
+  }
+
+  const { data: works } = await worksQuery
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -102,70 +135,8 @@ export default async function ExplorePage(): Promise<JSX.Element> {
       ) || [];
 
   return (
-    <div className="min-h-screen bg-[#d9d9d9] text-[#1b1b1b]">
-      <div className="font-mono">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-black/20 px-6 py-4">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
-              <span className="text-4xl leading-none">✱</span>
-              <span className="text-4xl leading-none">—</span>
-            </div>
-            <Link
-              href="/upload"
-              className="flex items-center gap-2 rounded-full border border-black/40 bg-[#e6e6e6] px-4 py-1.5 text-sm shadow-sm hover:bg-[#dcdcdc] transition-colors"
-            >
-              <span className="text-base">+</span>
-              <span>create</span>
-            </Link>
-          </div>
-
-          <div className="flex items-center rounded-full bg-white px-2 py-1 shadow-sm">
-            <button className="rounded-full px-5 py-1 text-sm">explore</button>
-            <button className="rounded-full px-5 py-1 text-sm text-black/60">
-              expand
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-full bg-white px-4 py-2 shadow-sm">
-            <input
-              type="text"
-              placeholder="search"
-              className="w-48 bg-transparent text-sm outline-none placeholder:text-black/40"
-            />
-            <span className="text-black/60">⌕</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {user && currentProfile?.username && (
-              <Link
-                href={`/${currentProfile.username}`}
-                className="rounded-full border border-black/40 bg-[#e6e6e6] px-4 py-1.5 text-sm shadow-sm hover:bg-[#dcdcdc] transition-colors"
-              >
-                profile
-              </Link>
-            )}
-            {user && (
-              <form action="/auth/signout" method="POST">
-                <button
-                  type="submit"
-                  className="rounded-full border border-black/40 bg-[#e6e6e6] px-4 py-1.5 text-sm shadow-sm hover:bg-[#dcdcdc] transition-colors"
-                >
-                  logout
-                </button>
-              </form>
-            )}
-            {!user && (
-              <Link
-                href="/login"
-                className="rounded-full border border-black/40 bg-[#e6e6e6] px-4 py-1.5 text-sm shadow-sm hover:bg-[#dcdcdc] transition-colors"
-              >
-                login
-              </Link>
-            )}
-          </div>
-        </header>
-
-        <main className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
+    <div className="bg-[#d9d9d9] text-[#1b1b1b] font-mono">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
           <aside className="hidden lg:flex lg:flex-col lg:gap-6">
             <div className="rounded-2xl bg-[#d9d9d9] p-4 shadow-sm">
               <div className="relative overflow-hidden rounded-2xl bg-[#f2f2f2]">
@@ -229,85 +200,10 @@ export default async function ExplorePage(): Promise<JSX.Element> {
             </div>
           </aside>
 
-          <section className="space-y-8">
-            {workItems.length > 0 ? (
-              workItems.map((work) => {
-                const author = work.author;
-                const authorName =
-                  author?.display_name ||
-                  (author?.username ? `@${author.username}` : "anonymous");
-                const authorInitial = authorName.charAt(0).toUpperCase();
-                const isFollowed = followingIds.has(work.author_id);
-
-                return (
-                  <article key={work.id} className="overflow-hidden rounded-xl bg-white shadow-md">
-                    <Link href={`/work/${work.id}`} className="block">
-                      {work.image_url ? (
-                        <img
-                          src={work.image_url}
-                          alt={work.title || "Artwork"}
-                          className="h-80 w-full object-cover hover:opacity-95 transition-opacity"
-                        />
-                      ) : (
-                        <div className="p-6 text-sm text-black/70 hover:bg-black/5 transition-colors">
-                          <p className="text-base text-black/80">
-                            {work.title || "Untitled"}
-                          </p>
-                          {work.description && (
-                            <p className="mt-2 text-black/60">
-                              {work.description}
-                            </p>
-                          )}
-                          {work.work_type === "essay" && work.content && (
-                            <p className="mt-2 line-clamp-3 text-black/50">
-                              {work.content}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </Link>
-                    <div className="flex items-center justify-between border-t border-black/10 p-4 text-sm">
-                      <Link
-                        href={author?.username ? `/${author.username}` : "#"}
-                        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                      >
-                        {author?.avatar_url ? (
-                          <img
-                            src={author.avatar_url}
-                            alt={authorName}
-                            className="h-10 w-10 rounded-full object-cover"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-full bg-[#e6e6e6] flex items-center justify-center">
-                            {authorInitial}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-black/80">{authorName}</p>
-                          {work.title && work.image_url && (
-                            <p className="text-black/60">{work.title}</p>
-                          )}
-                        </div>
-                      </Link>
-                      {isFollowed && (
-                        <span className="text-xs text-black/50 bg-black/5 px-2 py-1 rounded-full">
-                          Following
-                        </span>
-                      )}
-                    </div>
-                  </article>
-                );
-              })
-            ) : (
-              <article className="rounded-xl bg-white p-6 shadow-md text-sm text-black/60">
-                No works yet.{" "}
-                <Link href="/upload" className="underline hover:text-black">
-                  Be the first to share!
-                </Link>
-              </article>
-            )}
-          </section>
+          <ExploreFeed
+            works={workItems}
+            followingIds={Array.from(followingIds)}
+          />
 
           <aside className="hidden lg:flex lg:flex-col lg:gap-10">
             <div className="space-y-4">
@@ -363,7 +259,6 @@ export default async function ExplorePage(): Promise<JSX.Element> {
               )}
             </div>
           </aside>
-        </main>
       </div>
     </div>
   );

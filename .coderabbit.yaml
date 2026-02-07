@@ -1,10 +1,12 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 language: "en-US"
-early_access: false
+early_access: true
 reviews:
-  profile: "harsh UI/UX design expert"
+  tone_instructions: "talk like an old expert professor in UI/UX design who doesn't hold back"
+  profile: "assertive"
   request_changes_workflow: false
   high_level_summary: true
+  high_level_summary_instructions: "Create concise release notes as a bullet-point list"
   poem: true
   review_status: true
   review_details: false

@@ -1,15 +1,22 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { uploadFileWithPresignedUrl, deleteFile } from "@/lib/amplify/storage";
 
 type WorkType = "image" | "essay";
 
+interface Interest {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export default function NewWorkPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
 
   const [workType, setWorkType] = useState<WorkType>("image");
   const [file, setFile] = useState<File | null>(null);
@@ -20,6 +27,35 @@ export default function NewWorkPage() {
   const [uploading, setUploading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [interests, setInterests] = useState<Interest[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<Set<string>>(new Set());
+
+  // Fetch interests on mount
+  useEffect(() => {
+    async function fetchInterests() {
+      const { data } = await supabase
+        .from("interests")
+        .select("id, name, slug")
+        .order("name");
+
+      if (data) {
+        setInterests(data);
+      }
+    }
+    fetchInterests();
+  }, [supabase]);
+
+  function toggleInterest(interestId: string) {
+    setSelectedInterests((prev) => {
+      const next = new Set(prev);
+      if (next.has(interestId)) {
+        next.delete(interestId);
+      } else {
+        next.add(interestId);
+      }
+      return next;
+    });
+  }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -53,6 +89,7 @@ export default function NewWorkPage() {
     setDescription("");
     setContent("");
     setError(null);
+    setSelectedInterests(new Set());
   };
 
   const handleWorkTypeChange = (newType: WorkType) => {
@@ -82,6 +119,11 @@ export default function NewWorkPage() {
 
     if (workType === "essay" && content.trim().length < 100) {
       setError("Essays must be at least 100 characters");
+      return;
+    }
+
+    if (selectedInterests.size === 0) {
+      setError("Please select at least one interest category");
       return;
     }
 
@@ -191,16 +233,36 @@ export default function NewWorkPage() {
         workData.content = content.trim();
       }
 
-      const { error: insertError } = await supabase.from("works").insert(workData);
+      const { data: insertedWork, error: insertError } = await supabase
+        .from("works")
+        .insert(workData)
+        .select("id")
+        .single();
 
-      if (insertError) {
+      if (insertError || !insertedWork) {
         // Clean up uploaded file if database insert fails
         try {
           await deleteFile(filePath);
         } catch {
           console.error("Failed to clean up uploaded file");
         }
-        throw insertError;
+        throw insertError || new Error("Failed to create work");
+      }
+
+      // Insert work interests
+      if (selectedInterests.size > 0) {
+        const workInterests = Array.from(selectedInterests).map((interestId) => ({
+          work_id: insertedWork.id,
+          interest_id: interestId,
+        }));
+
+        const { error: interestsError } = await supabase
+          .from("work_interests")
+          .insert(workInterests);
+
+        if (interestsError) {
+          console.error("Failed to save work interests:", interestsError);
+        }
       }
 
       router.push("/explore");
@@ -360,6 +422,35 @@ export default function NewWorkPage() {
           </div>
         )}
 
+        {/* Interest categories */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Categories
+            <span className="text-muted-foreground font-normal ml-1">
+              (select at least 1)
+            </span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {interests.map((interest) => {
+              const isSelected = selectedInterests.has(interest.id);
+              return (
+                <button
+                  key={interest.id}
+                  type="button"
+                  onClick={() => toggleInterest(interest.id)}
+                  className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                    isSelected
+                      ? "bg-foreground text-background"
+                      : "border border-border hover:bg-muted"
+                  }`}
+                >
+                  {interest.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Error message */}
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
@@ -370,7 +461,7 @@ export default function NewWorkPage() {
         {/* Submit button */}
         <button
           type="submit"
-          disabled={uploading || validating || !file}
+          disabled={uploading || validating || !file || selectedInterests.size === 0}
           className="w-full py-3 bg-foreground text-background rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {validating
