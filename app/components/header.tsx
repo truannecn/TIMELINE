@@ -33,7 +33,7 @@ export default async function Header(): Promise<JSX.Element> {
   const avatarLetter = displayName.charAt(0).toUpperCase();
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 bg-[#8C7B9A] border-b border-black/20 px-6 py-4 font-mono">
+    <header className="flex flex-wrap items-center justify-between gap-4 bg-white border-b border-black/20 px-6 py-4 font-mono">
       <div className="flex items-center gap-6">
         <Link href="/explore" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <span className="text-4xl leading-none">✱</span>
