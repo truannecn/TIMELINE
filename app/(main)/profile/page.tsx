@@ -200,7 +200,6 @@ export default async function ProfilePage({ searchParams }: Props) {
             >
               timeline
             </Link>
-            <span className="text-black/40">reposts</span>
             <Link
               href="/profile?tab=saved"
               className={`border-b pb-1 ${
