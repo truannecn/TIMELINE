@@ -4,10 +4,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-interface Interest {
+interface Thread {
   id: string;
   name: string;
-  slug: string;
 }
 
 export default function InterestsPage() {
@@ -16,10 +15,10 @@ export default function InterestsPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [interests, setInterests] = useState<Interest[]>([]);
+  const [threads, setThreads] = useState<Thread[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // Fetch interests and user's existing selections on mount
+  // Fetch threads and user's existing selections on mount
   useEffect(() => {
     async function init() {
       const {
@@ -31,24 +30,24 @@ export default function InterestsPage() {
         return;
       }
 
-      // Fetch all interests from database
-      const { data: interestsData } = await supabase
-        .from("interests")
-        .select("id, name, slug")
+      // Fetch all threads from database
+      const { data: threadsData } = await supabase
+        .from("threads")
+        .select("id, name")
         .order("name");
 
-      if (interestsData) {
-        setInterests(interestsData);
+      if (threadsData) {
+        setThreads(threadsData);
       }
 
-      // Fetch user's existing interest selections
-      const { data: userInterests } = await supabase
-        .from("user_interests")
-        .select("interest_id")
+      // Fetch user's existing thread selections
+      const { data: userThreads } = await supabase
+        .from("user_threads")
+        .select("thread_id")
         .eq("user_id", user.id);
 
-      if (userInterests && userInterests.length > 0) {
-        setSelected(new Set(userInterests.map((ui) => ui.interest_id)));
+      if (userThreads && userThreads.length > 0) {
+        setSelected(new Set(userThreads.map((ut) => ut.thread_id)));
       }
 
       setLoading(false);
@@ -57,13 +56,13 @@ export default function InterestsPage() {
     init();
   }, [supabase, router]);
 
-  function toggleInterest(interestId: string) {
+  function toggleThread(threadId: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(interestId)) {
-        next.delete(interestId);
+      if (next.has(threadId)) {
+        next.delete(threadId);
       } else {
-        next.add(interestId);
+        next.add(threadId);
       }
       return next;
     });
@@ -81,17 +80,17 @@ export default function InterestsPage() {
       return;
     }
 
-    // Delete existing user interests for idempotency
-    await supabase.from("user_interests").delete().eq("user_id", user.id);
+    // Delete existing user thread follows for idempotency
+    await supabase.from("user_threads").delete().eq("user_id", user.id);
 
-    // Insert new selections
+    // Insert new selections as thread follows
     if (selected.size > 0) {
-      const inserts = Array.from(selected).map((interestId) => ({
+      const inserts = Array.from(selected).map((threadId) => ({
         user_id: user.id,
-        interest_id: interestId,
+        thread_id: threadId,
       }));
 
-      await supabase.from("user_interests").insert(inserts);
+      await supabase.from("user_threads").insert(inserts);
     }
 
     router.push("/explore");
@@ -140,20 +139,20 @@ export default function InterestsPage() {
           {/* Interest tags grid */}
           <div className="flex-1 overflow-y-auto">
             <div className="grid grid-cols-3 gap-3 justify-items-center">
-              {interests.map((interest) => {
-                const isSelected = selected.has(interest.id);
+              {threads.map((thread) => {
+                const isSelected = selected.has(thread.id);
                 return (
                   <button
-                    key={interest.id}
+                    key={thread.id}
                     type="button"
-                    onClick={() => toggleInterest(interest.id)}
+                    onClick={() => toggleThread(thread.id)}
                     className={`w-full h-[53px] rounded-[20px] font-[family-name:var(--font-jetbrains-mono)] text-white text-sm sm:text-base transition-colors ${
                       isSelected
                         ? "bg-[#3f5357]"
                         : "bg-[rgba(25,37,71,0.2)] hover:bg-[rgba(25,37,71,0.35)]"
                     }`}
                   >
-                    {interest.name}
+                    {thread.name}
                   </button>
                 );
               })}

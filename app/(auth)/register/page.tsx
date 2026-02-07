@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 function RegisterContent(): JSX.Element {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  const redirect = searchParams.get("redirect") ?? "/newuser";
 
   const handleOAuthSignUp = async () => {
     const supabase = createClient();
@@ -15,7 +16,7 @@ function RegisterContent(): JSX.Element {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${siteUrl}/oauth/consent?next=/newuser`,
+        redirectTo: `${siteUrl}/oauth/consent?next=${redirect}`,
       },
     });
   };
@@ -195,13 +196,16 @@ function RegisterContent(): JSX.Element {
         </span>
       </button>
 
-      {/* Back to home link */}
-      <Link
-        href="/"
-        className="mt-6 font-['Jeju_Myeongjo',serif] text-[#3e3b3b] text-sm hover:text-white/80 transition-colors"
-      >
-        back to home
-      </Link>
+      {/* Login link */}
+      <p className="mt-6 font-['Jeju_Myeongjo',serif] text-[#3e3b3b] text-sm">
+        already have an account?{" "}
+        <Link
+          href="/login"
+          className="underline hover:text-white/80 transition-colors"
+        >
+          log in here
+        </Link>
+      </p>
     </div>
   );
 }

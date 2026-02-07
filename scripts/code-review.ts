@@ -94,74 +94,31 @@ ${conventions ? `Project conventions from CLAUDE.md:\n${conventions.slice(0, 200
 `,
     model: 'openai/gpt-5.2',
     instructions: `
-You are reviewing code for Artfolio, an AI-free artist portfolio platform.
+Review code for Artfolio. ONLY flag issues you're highly confident about.
 
-CRITICAL CHECKS (only build-failing issues):
-- Syntax errors that would prevent compilation
-- Missing imports that would cause runtime errors
-- Invalid SQL syntax in migrations
-- Invalid JSON in config files
-- TypeScript errors that would fail build
-- Accessing properties on potentially null Supabase query results without null checks (e.g., data.id when data could be null from .single())
-- NOTE: Field/type renames (e.g., primary_interest → primary_thread) are NOT critical if all references are updated consistently and TypeScript compiles
+CRITICAL (build-breaking only):
+- Syntax errors, missing imports, invalid SQL/JSON
+- TypeScript errors (undefined properties, missing null checks on .single())
+- SQL: ON CONFLICT without UNIQUE constraint
+- Skip: Type renames if consistently updated
 
-WARNING CHECKS (everything else - security, best practices, etc.):
-- Security issues (SQL injection, XSS, auth bypasses)
-  Note: Server actions with proper auth.getUser() + RLS are acceptable
-- Hardcoded secrets (API keys, passwords, tokens)
-- Missing RLS policies on new tables
-- Database issues (missing indexes, cascade deletes)
-- AI detection removed or threshold changes
-- Naming conventions violations (kebab-case files, PascalCase components, snake_case DB)
-- Missing error handling
-- N+1 query opportunities
-- Large bundle imports
-- Missing TypeScript types or 'any' types
-- Server vs client component issues
+WARNING (security/major bugs only):
+- Hardcoded secrets (API keys, passwords)
+- SQL injection, XSS vulnerabilities
+- Missing RLS on new tables
+- Auth bypass attempts
 
-INFO CHECKS (nice to haves):
-- Missing comments on complex logic
-- Performance optimizations
-- Accessibility improvements
-- Better abstractions
-
-${isSQL ? `
-SQL-SPECIFIC CHECKS:
-- Are RLS policies defined for new tables?
-- Are indexes created on foreign keys?
-- Is 'on delete cascade' used appropriately?
-- Are migrations reversible?
-- Standard columns included: id, created_at, updated_at?
-- CRITICAL: 'ON CONFLICT (column)' requires a UNIQUE constraint/index on that column, otherwise the migration will fail at runtime
-` : ''}
-
-${isComponent ? `
-COMPONENT-SPECIFIC CHECKS:
-- Is 'use client' directive needed/missing?
-- Are images optimized (next/image)?
-- Is loading state handled?
-- Are forms validated?
-- Is auth checked before rendering protected content?
-` : ''}
+${isSQL ? 'SQL: Check RLS policies, indexes on FKs, cascade deletes.' : ''}
+${isComponent ? 'Components: Check use client, auth guards, form validation.' : ''}
 
 Return JSON:
 {
-  "issues": [
-    {
-      "severity": "critical" | "warning" | "info",
-      "message": "Brief description",
-      "line": 123  // optional line number if identifiable
-    }
-  ],
-  "summary": "Overall assessment",
-  "approved": boolean  // false if any CRITICAL issues
+  "issues": [{"severity": "critical"|"warning", "message": "Brief msg", "line": 123}],
+  "summary": "1 sentence",
+  "approved": boolean
 }
 
-IMPORTANT:
-- CRITICAL = only build-failing issues (syntax errors, missing imports, invalid SQL/JSON)
-- WARNING = security, best practices, conventions (these don't block commits)
-- Trust that TypeScript + RLS policies + server-side auth provide protection
-- Be concise. Only flag real issues, not stylistic preferences.
+IMPORTANT: Be strict. Only flag if you're 90%+ confident it's a real issue. Ignore style/opinions.
 `,
     response_format: { type: 'json_object' }
   });

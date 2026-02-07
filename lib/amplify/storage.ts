@@ -19,18 +19,34 @@ async function getPresignedUploadUrl(
   fileName: string,
   contentType: string
 ): Promise<PresignedUploadResult> {
-  const response = await fetch("/api/upload-url", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fileName, contentType }),
-  });
+  try {
+    const response = await fetch("/api/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName, contentType }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to get upload URL");
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Upload URL API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+      });
+      try {
+        const error = JSON.parse(errorText);
+        throw new Error(error.error || "Failed to get upload URL");
+      } catch {
+        throw new Error(`Failed to get upload URL: ${response.statusText}`);
+      }
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error getting presigned URL:", error);
+    throw error;
   }
-
-  return response.json();
 }
 
 /**

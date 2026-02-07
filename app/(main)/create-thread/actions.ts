@@ -3,7 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function createThread(name: string, description?: string) {
+export async function createThread(
+  name: string,
+  description: string,
+  photoUrl: string | null
+): Promise<{ success: boolean; error?: string; threadId?: string }> {
   const supabase = await createClient();
 
   const {
@@ -12,6 +16,11 @@ export async function createThread(name: string, description?: string) {
 
   if (!user) {
     return { success: false, error: "Not authenticated" };
+  }
+
+  // Validate required fields
+  if (!name || name.trim().length === 0) {
+    return { success: false, error: "Thread name is required" };
   }
 
   // Check if thread name already exists
@@ -29,8 +38,9 @@ export async function createThread(name: string, description?: string) {
   const { data: thread, error } = await supabase
     .from("threads")
     .insert({
-      name,
-      description: description || null,
+      name: name.trim(),
+      description: description && description.trim().length > 0 ? description.trim() : null,
+      photo_url: photoUrl,
       created_by: user.id,
     })
     .select("id")

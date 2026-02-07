@@ -21,10 +21,9 @@ interface Profile {
   avatar_url: string | null;
 }
 
-interface Interest {
+interface Thread {
   id: string;
   name: string;
-  slug: string;
 }
 
 export default function EditProfilePage() {
@@ -50,8 +49,8 @@ export default function EditProfilePage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
 
-  const [interests, setInterests] = useState<Interest[]>([]);
-  const [selectedInterests, setSelectedInterests] = useState<Set<string>>(
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [selectedThreads, setSelectedThreads] = useState<Set<string>>(
     new Set()
   );
 
@@ -89,25 +88,25 @@ export default function EditProfilePage() {
         avatar_url: data.avatar_url,
       });
 
-      // Fetch all interests
-      const { data: interestsData } = await supabase
-        .from("interests")
-        .select("id, name, slug")
+      // Fetch all threads
+      const { data: threadsData } = await supabase
+        .from("threads")
+        .select("id, name")
         .order("name");
 
-      if (interestsData) {
-        setInterests(interestsData);
+      if (threadsData) {
+        setThreads(threadsData);
       }
 
-      // Fetch user's current interest selections
-      const { data: userInterests } = await supabase
-        .from("user_interests")
-        .select("interest_id")
+      // Fetch user's current thread selections
+      const { data: userThreads } = await supabase
+        .from("user_threads")
+        .select("thread_id")
         .eq("user_id", user.id);
 
-      if (userInterests && userInterests.length > 0) {
-        setSelectedInterests(
-          new Set(userInterests.map((ui) => ui.interest_id))
+      if (userThreads && userThreads.length > 0) {
+        setSelectedThreads(
+          new Set(userThreads.map((ut) => ut.thread_id))
         );
       }
 
@@ -163,13 +162,13 @@ export default function EditProfilePage() {
     }
   }
 
-  function toggleInterest(interestId: string) {
-    setSelectedInterests((prev) => {
+  function toggleThread(threadId: string) {
+    setSelectedThreads((prev) => {
       const next = new Set(prev);
-      if (next.has(interestId)) {
-        next.delete(interestId);
+      if (next.has(threadId)) {
+        next.delete(threadId);
       } else {
-        next.add(interestId);
+        next.add(threadId);
       }
       return next;
     });
@@ -260,23 +259,23 @@ export default function EditProfilePage() {
         throw updateError;
       }
 
-      // Update user interests
-      // Delete existing interests
-      await supabase.from("user_interests").delete().eq("user_id", user.id);
+      // Update user thread follows
+      // Delete existing thread follows
+      await supabase.from("user_threads").delete().eq("user_id", user.id);
 
       // Insert new selections
-      if (selectedInterests.size > 0) {
-        const inserts = Array.from(selectedInterests).map((interestId) => ({
+      if (selectedThreads.size > 0) {
+        const inserts = Array.from(selectedThreads).map((threadId) => ({
           user_id: user.id,
-          interest_id: interestId,
+          thread_id: threadId,
         }));
 
-        const { error: interestsError } = await supabase
-          .from("user_interests")
+        const { error: threadsError } = await supabase
+          .from("user_threads")
           .insert(inserts);
 
-        if (interestsError) {
-          throw interestsError;
+        if (threadsError) {
+          throw threadsError;
         }
       }
 
@@ -471,26 +470,26 @@ export default function EditProfilePage() {
             </span>
           </label>
           <div className="grid grid-cols-3 gap-2">
-            {interests.map((interest) => {
-              const isSelected = selectedInterests.has(interest.id);
+            {threads.map((thread) => {
+              const isSelected = selectedThreads.has(thread.id);
               return (
                 <button
-                  key={interest.id}
+                  key={thread.id}
                   type="button"
-                  onClick={() => toggleInterest(interest.id)}
+                  onClick={() => toggleThread(thread.id)}
                   className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                     isSelected
                       ? "bg-foreground text-background"
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
-                  {interest.name}
+                  {thread.name}
                 </button>
               );
             })}
           </div>
           <p className="text-xs text-muted-foreground">
-            {selectedInterests.size} selected
+            {selectedThreads.size} selected
           </p>
         </div>
 
@@ -505,7 +504,7 @@ export default function EditProfilePage() {
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={saving || uploadingAvatar || selectedInterests.size < 2}
+            disabled={saving || uploadingAvatar || selectedThreads.size < 2}
             className="flex-1 py-2.5 bg-foreground text-background rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {uploadingAvatar
@@ -515,7 +514,7 @@ export default function EditProfilePage() {
               : "Save Changes"}
           </button>
         </div>
-        {selectedInterests.size < 2 && (
+        {selectedThreads.size < 2 && (
           <p className="text-xs text-amber-600 text-center">
             Please select at least 2 interests to save changes
           </p>

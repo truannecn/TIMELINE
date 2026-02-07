@@ -25,7 +25,7 @@ const notoSerifKR = Noto_Serif_KR({
 });
 
 export const metadata: Metadata = {
-  title: "*-timeline — Create. Explore. Expand. Conquer.",
+  title: "timeline — Create. Explore. Expand. Conquer.",
   description:
     "An AI-free artist portfolio and social platform. Share your authentic work with a community that values human creativity.",
 };

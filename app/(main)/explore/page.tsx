@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ExploreFeed from "./explore-feed";
+import PortfolioCard from "@/app/components/portfolio-card";
 
 export default async function ExplorePage({
   searchParams,
@@ -18,7 +19,7 @@ export default async function ExplorePage({
   const { data: currentProfile } = user
     ? await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, bio")
         .eq("id", user.id)
         .single()
     : { data: null };
@@ -33,6 +34,7 @@ export default async function ExplorePage({
 
   const followingIds = new Set(followingData?.map((f) => f.following_id) || []);
 
+  // Fetch works with like counts
   const { data: works } = await supabase
     .from("works")
     .select(
@@ -50,6 +52,30 @@ export default async function ExplorePage({
     )
     .order("created_at", { ascending: false })
     .limit(100);
+
+  // Get like counts for all works
+  const workIds = works?.map((w) => w.id) || [];
+  const { data: likeCounts } = await supabase
+    .from("likes")
+    .select("work_id")
+    .in("work_id", workIds);
+
+  // Get current user's likes
+  const { data: userLikes } = user
+    ? await supabase
+        .from("likes")
+        .select("work_id")
+        .eq("user_id", user.id)
+        .in("work_id", workIds)
+    : { data: null };
+
+  // Create maps for efficient lookup
+  const likeCountMap = new Map<string, number>();
+  likeCounts?.forEach((like) => {
+    likeCountMap.set(like.work_id, (likeCountMap.get(like.work_id) || 0) + 1);
+  });
+
+  const userLikedSet = new Set(userLikes?.map((like) => like.work_id) || []);
 
   // Sort works: followed users first, then by date
   const sortedWorks = works?.sort((a, b) => {
@@ -80,15 +106,50 @@ export default async function ExplorePage({
     .order("created_at", { ascending: false })
     .limit(6);
 
-  const { data: following } = user
+  // Fetch threads the user follows
+  const { data: followedThreadsData } = user
     ? await supabase
-        .from("follows")
-        .select(
-          "following:profiles!follows_following_id_fkey(id, username, display_name, avatar_url)"
-        )
-        .eq("follower_id", user.id)
+        .from("user_threads")
+        .select("thread:threads!user_threads_thread_id_fkey(id, name)")
+        .eq("user_id", user.id)
         .limit(6)
-    : { data: [] as { following: { id: string; username: string | null; display_name: string | null; avatar_url: string | null } | null }[] };
+    : { data: null };
+
+  const followedThreads = (followedThreadsData || [])
+    .map((item: { thread: { id: string; name: string } | { id: string; name: string }[] | null }) => {
+      const t = item.thread;
+      return Array.isArray(t) ? t[0] : t;
+    })
+    .filter((t): t is { id: string; name: string } => t !== null && t !== undefined);
+
+  // Get following list and counts
+  const [followingResult, followerCountResult, followingCountResult] = user
+    ? await Promise.all([
+        supabase
+          .from("follows")
+          .select(
+            "following:profiles!follows_following_id_fkey(id, username, display_name, avatar_url)"
+          )
+          .eq("follower_id", user.id)
+          .limit(6),
+        supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("following_id", user.id),
+        supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("follower_id", user.id),
+      ])
+    : [
+        { data: [] as { following: { id: string; username: string | null; display_name: string | null; avatar_url: string | null } | null }[] },
+        { count: 0 },
+        { count: 0 },
+      ];
+
+  const following = followingResult.data;
+  const followerCount = followerCountResult.count || 0;
+  const followingCount = followingCountResult.count || 0;
 
   const displayName =
     currentProfile?.display_name || currentProfile?.username || "guest";
@@ -96,10 +157,12 @@ export default async function ExplorePage({
 
   const threadItems = threads || [];
 
-  // Normalize author field - Supabase can return single object or array
+  // Normalize author field and add like info - Supabase can return single object or array
   const workItems = (sortedWorks || []).map((work) => ({
     ...work,
     author: Array.isArray(work.author) ? work.author[0] : work.author,
+    likeCount: likeCountMap.get(work.id) || 0,
+    isLiked: userLikedSet.has(work.id),
   }));
   const creativeItems = creatives || [];
   const followingItems =
@@ -116,40 +179,7 @@ export default async function ExplorePage({
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
           <aside className="hidden lg:flex lg:flex-col lg:gap-6">
-            <div className="rounded-2xl bg-[#b0b0b0] p-2 shadow-sm">
-              <div className="relative overflow-hidden rounded-xl bg-white">
-                <div className="h-14 bg-slate-400" />
-                <div className="h-14 bg-slate-300" />
-                <div className="absolute left-1/2 top-14 -translate-x-1/2 -translate-y-1/2">
-                  {currentProfile?.avatar_url ? (
-                    <img
-                      src={currentProfile.avatar_url}
-                      alt={displayName}
-                      className="h-20 w-20 rounded-full border-4 border-white object-cover shadow-md"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="h-20 w-20 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center text-2xl text-slate-600 shadow-md">
-                      {avatarLetter}
-                    </div>
-                  )}
-                </div>
-                <div className="flex justify-center pb-3 pt-12">
-                  {currentProfile?.username ? (
-                    <Link
-                      href={`/${currentProfile.username}`}
-                      className="rounded-full bg-slate-200 px-6 py-1.5 text-sm shadow-sm hover:bg-slate-300 transition-colors"
-                    >
-                      portfolio
-                    </Link>
-                  ) : (
-                    <span className="rounded-full bg-slate-200 px-6 py-1.5 text-sm shadow-sm">
-                      portfolio
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+            <PortfolioCard profile={currentProfile} />
 
             <div className="space-y-3 text-sm">
               <p className="text-black/70">following</p>
@@ -171,6 +201,26 @@ export default async function ExplorePage({
               )}
             </div>
 
+            <div className="space-y-3 text-sm">
+              <p className="font-bold text-black/70">following threads</p>
+              {followedThreads.length > 0 ? (
+                <ul className="space-y-2 text-black/80">
+                  {followedThreads.map((thread) => (
+                    <li key={thread.id}>
+                      <Link
+                        href={`/thread/${thread.id}`}
+                        className="hover:text-black transition-colors"
+                      >
+                        *-{thread.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-black/50">no threads yet</p>
+              )}
+            </div>
+
             <div className="mt-auto flex items-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#3a8d3a] text-white shadow-md">
                 {avatarLetter}
@@ -188,17 +238,16 @@ export default async function ExplorePage({
 
           <aside className="hidden lg:flex lg:flex-col lg:gap-10">
             <div className="space-y-4">
-              <p className="text-sm text-black/70">threads for you</p>
+              <p className="text-sm font-bold text-black/70">threads for you</p>
               {threadItems.length > 0 ? (
                 <ul className="space-y-3 text-sm">
                   {threadItems.map((thread) => (
                     <li key={thread.id}>
                       <Link
                         href={`/thread/${thread.id}`}
-                        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                        className="hover:text-black transition-colors"
                       >
-                        <span className="h-8 w-8 rounded-md bg-[#d0d0d0]" />
-                        <span>{thread.name}</span>
+                        *-{thread.name}
                       </Link>
                     </li>
                   ))}

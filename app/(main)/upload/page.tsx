@@ -11,10 +11,9 @@ import {
   applyFiltersToFile,
 } from "@/lib/image-filters";
 
-interface Interest {
+interface Thread {
   id: string;
   name: string;
-  slug: string;
 }
 
 export default function NewWorkPage() {
@@ -32,39 +31,37 @@ export default function NewWorkPage() {
   const [uploading, setUploading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [interests, setInterests] = useState<Interest[]>([]);
-  const [selectedInterests, setSelectedInterests] = useState<Set<string>>(new Set());
-  const [primaryInterest, setPrimaryInterest] = useState<string | null>(null);
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [selectedThreads, setSelectedThreads] = useState<Set<string>>(new Set());
+  const [primaryThread, setPrimaryThread] = useState<string | null>(null);
 
-  // Fetch interests on mount
+  // Fetch threads on mount
   useEffect(() => {
-    async function fetchInterests() {
+    async function fetchThreads() {
       const { data } = await supabase
-        .from("interests")
-        .select("id, name, slug")
+        .from("threads")
+        .select("id, name")
         .order("name");
 
       if (data) {
-        setInterests(data);
+        setThreads(data);
       }
     }
-    fetchInterests();
+    fetchThreads();
   }, [supabase]);
 
-  function toggleInterest(interestId: string) {
-    setSelectedInterests((prev) => {
+  function toggleThread(threadId: string) {
+    setSelectedThreads((prev) => {
       const next = new Set(prev);
-      if (next.has(interestId)) {
-        next.delete(interestId);
-        // Clear primary if deselecting the primary interest
-        if (primaryInterest === interestId) {
-          setPrimaryInterest(null);
+      if (next.has(threadId)) {
+        next.delete(threadId);
+        if (primaryThread === threadId) {
+          setPrimaryThread(null);
         }
       } else {
-        next.add(interestId);
-        // Auto-set as primary if it's the first one
+        next.add(threadId);
         if (next.size === 1) {
-          setPrimaryInterest(interestId);
+          setPrimaryThread(threadId);
         }
       }
       return next;
@@ -129,10 +126,9 @@ export default function NewWorkPage() {
     setTitle("");
     setDescription("");
     setError(null);
-    setSelectedInterests(new Set());
-    setPrimaryInterest(null);
+    setSelectedThreads(new Set());
+    setPrimaryThread(null);
   };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,12 +143,23 @@ export default function NewWorkPage() {
       return;
     }
 
-    if (selectedInterests.size === 0) {
-      setError("Please select at least one interest category");
+    if (workType === "essay" && !content.trim()) {
+      setError("Please enter your essay content");
       return;
     }
 
-    if (!primaryInterest) {
+    if (workType === "essay" && content.trim().length < 100) {
+      setError("Essays must be at least 100 characters");
+      return;
+    }
+
+    if (selectedThreads.size === 0) {
+      setError("Please select at least one category");
+
+      return;
+    }
+
+    if (!primaryThread) {
       setError("Please select a primary category by clicking the star icon");
       return;
     }
@@ -280,10 +287,10 @@ export default function NewWorkPage() {
       }
 
       // Update work with primary thread
-      if (primaryInterest) {
+      if (primaryThread) {
         const { error: primaryError } = await supabase
           .from("works")
-          .update({ primary_thread_id: primaryInterest })
+          .update({ primary_thread_id: primaryThread })
           .eq("id", insertedWork.id);
 
         if (primaryError) {
@@ -291,19 +298,39 @@ export default function NewWorkPage() {
         }
       }
 
-      // Insert work interests
-      if (selectedInterests.size > 0) {
-        const workInterests = Array.from(selectedInterests).map((interestId) => ({
+      // Insert work-thread associations
+      if (selectedThreads.size > 0) {
+        const workThreads = Array.from(selectedThreads).map((threadId) => ({
           work_id: insertedWork.id,
-          interest_id: interestId,
+          thread_id: threadId,
         }));
 
-        const { error: interestsError } = await supabase
-          .from("work_interests")
-          .insert(workInterests);
+        const { error: threadsError } = await supabase
+          .from("work_threads")
+          .insert(workThreads);
 
-        if (interestsError) {
-          console.error("Failed to save work interests:", interestsError);
+        if (threadsError) {
+          console.error("Failed to save work threads:", threadsError);
+        }
+      }
+
+      // Insert additional images into work_images table
+      if (additionalImages.length > 0) {
+        const workImages = additionalImages.map((img, index) => ({
+          work_id: insertedWork.id,
+          image_path: img.path,
+          image_url: img.url,
+          width: img.width,
+          height: img.height,
+          display_order: index + 1, // Start from 1 since cover is 0
+        }));
+
+        const { error: imagesError } = await supabase
+          .from("work_images")
+          .insert(workImages);
+
+        if (imagesError) {
+          console.error("Failed to save additional images:", imagesError);
         }
       }
 
@@ -466,30 +493,30 @@ export default function NewWorkPage() {
             </span>
           </label>
           <div className="flex flex-wrap gap-2">
-            {interests.map((interest) => {
-              const isSelected = selectedInterests.has(interest.id);
-              const isPrimary = primaryInterest === interest.id;
+            {threads.map((thread) => {
+              const isSelected = selectedThreads.has(thread.id);
+              const isPrimary = primaryThread === thread.id;
               return (
-                <div key={interest.id} className="flex items-center gap-1">
+                <div key={thread.id} className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => toggleInterest(interest.id)}
+                    onClick={() => toggleThread(thread.id)}
                     className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
                       isSelected
                         ? "bg-foreground text-background"
                         : "border border-border hover:bg-muted"
                     }`}
                   >
-                    {interest.name}
+                    {thread.name}
                   </button>
                   {isSelected && (
                     <button
                       type="button"
-                      onClick={() => setPrimaryInterest(interest.id)}
+                      onClick={() => setPrimaryThread(thread.id)}
                       className={`text-lg transition-colors ${
                         isPrimary ? "opacity-100" : "opacity-30 hover:opacity-60"
                       }`}
-                      aria-label="Set as primary interest"
+                      aria-label="Set as primary thread"
                       title="Set as primary category"
                     >
                       {isPrimary ? "⭐" : "☆"}
@@ -511,7 +538,7 @@ export default function NewWorkPage() {
         {/* Submit button */}
         <button
           type="submit"
-          disabled={uploading || validating || files.length === 0 || selectedInterests.size === 0}
+          disabled={uploading || validating || !file || selectedThreads.size === 0}
           className="w-full py-3 bg-foreground text-background rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {validating

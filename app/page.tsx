@@ -22,7 +22,7 @@ export default function HomePage(): JSX.Element {
 
         <div className="flex flex-col gap-4 w-full max-w-[230px]">
           <Link
-            href="/register"
+            href="/register?redirect=/explore"
             className="flex items-center justify-center gap-2 bg-[#2c2c2c] border border-[#2c2c2c] text-[#f5f5f5] rounded-lg px-3 py-3 text-base hover:bg-[#3a3a3a] transition-colors"
           >
             <Star className="w-4 h-4" />
@@ -30,7 +30,7 @@ export default function HomePage(): JSX.Element {
           </Link>
 
           <Link
-            href="/login"
+            href="/login?redirect=/explore"
             className="flex items-center justify-center gap-2 bg-[#2c2c2c] border border-[#2c2c2c] text-[#f5f5f5] rounded-lg px-3 py-3 text-base hover:bg-[#3a3a3a] transition-colors"
           >
             <Star className="w-4 h-4" />

@@ -1,8 +1,7 @@
-# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 language: "en-US"
 early_access: true
+tone_instructions: "motivate us as coders by talking like an old expert professor in UI/UX design who doesn't hold back"
 reviews:
-  tone_instructions: "motivate us as coders by talking like an old expert professor in UI/UX design who doesn't hold back"
   profile: "assertive"
   request_changes_workflow: false
   high_level_summary: true
@@ -15,6 +14,3 @@ reviews:
     drafts: false
 chat:
   auto_reply: true
-rules:
-  type: docstring
-  enabled: false

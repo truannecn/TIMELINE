@@ -1,8 +1,8 @@
-# CLAUDE.md — Artfolio
+# CLAUDE.md: *-timeline
 
 ## Project Vision
 
-Artfolio is an AI-free artist portfolio and social platform. All uploaded content must pass AI detection: **Sightengine** for images, **Dedalus AI** for text/essays.
+timeline is an AI-free artist portfolio and social platform. All uploaded content must pass AI detection: **Sightengine** for images, **Dedalus AI** for text/essays.
 
 **Core philosophy:** Empower human creators, not replace them.
 
@@ -72,6 +72,111 @@ supabase/migrations/        # SQL migrations
 - Supabase RLS for authorization + API route validation
 - AI detection happens **before** storing content
 - Wrapper functions for external deps (`lib/amplify/storage.ts`)
+
+---
+
+## Design System: Colors & Fonts
+
+### Fonts
+
+| Font | CSS Variable / Class | Usage |
+|------|---------------------|-------|
+| **Inter** | Default body font (`inter.className`) | Base text, UI elements |
+| **JetBrains Mono** | `font-[family-name:var(--font-jetbrains-mono)]` or `font-mono` | Header nav, headings, buttons (onboarding, threads), code |
+| **Noto Serif KR** | `font-[family-name:var(--font-serif-display)]` | Landing page subtitle |
+| **Inria Serif** | `font-['Inria_Serif',serif]` (loaded via Google Fonts CSS) | Onboarding body text, thread descriptions |
+| **Jeju Myeongjo** | `font-['Jeju_Myeongjo',serif]` (loaded via Google Fonts CSS) | Form labels (onboarding), sidebar descriptions, auth pages |
+
+**Rules:**
+- Do NOT use Tailwind's `font-serif` — always use the specific font family classes above
+- `font-mono` in Tailwind maps to JetBrains Mono via the CSS variable
+- The `(main)` layout sets `font-mono` on the entire page body
+
+### Colors
+
+#### Page Backgrounds
+
+| Context | Color |
+|---------|-------|
+| Landing page | `bg-[#d4d2d8]` |
+| Onboarding | `bg-[#516e73]` |
+| Main app (explore, profile, threads) | `bg-[#d9d9d9]` |
+| Header | `bg-[#8C7B9A]` |
+
+#### UI Element Colors
+
+| Element | Default | Hover | Notes |
+|---------|---------|-------|-------|
+| **Primary buttons** | `bg-black text-white` | `hover:bg-black/90` | Main CTAs (follow, upload, submit) |
+| **Landing buttons** | `bg-[#2c2c2c] text-[#f5f5f5]` | `hover:bg-[#3a3a3a]` | Login/register on landing |
+| **Onboarding buttons** | `bg-[#3f5357] text-white` | `hover:bg-[#4a6266]` | Onboarding flow CTAs |
+| **Header/nav buttons** | `bg-[#e6e6e6] border-black/40` | `hover:bg-[#dcdcdc]` | Pill-shaped, `rounded-full`, `shadow-sm` |
+| **Secondary/cancel buttons** | `border border-black/10` | `hover:bg-black/5` | Outlined style |
+| **Toggle active** | `bg-black/5` | — | Active tab/pill state |
+| **Toggle inactive** | `text-black/60` | `hover:bg-black/5` | Tab/pill inactive state |
+| **Follow (following)** | `bg-black/5 text-black/70` | `hover:bg-black/10` | Already-following state |
+| **Sidebar cards** | `bg-[#d9d9d9]` | — | Profile/thread sidebar panels |
+| **Avatar fallback** | `bg-[#e6e6e6]` | — | When no avatar image |
+
+#### Text Colors
+
+| Usage | Class |
+|-------|-------|
+| Primary text | `text-black` or `text-[#1b1b1b]` |
+| Secondary text | `text-black/70` or `text-black/80` |
+| Muted/caption text | `text-black/60` |
+| Subtle/timestamp text | `text-black/40` or `text-black/50` |
+| White on dark | `text-white` |
+
+#### Borders & Surfaces
+
+| Usage | Class |
+|-------|-------|
+| Default border | `border-black/10` |
+| Header border | `border-black/20` |
+| Button border (header) | `border-black/40` |
+| Card background | `bg-white` |
+| Subtle surface / empty state | `bg-black/5` |
+| Image placeholder | `bg-black/5` or `bg-[#cfcfcf]` |
+| Input focus ring | `focus:ring-2 focus:ring-black/20` |
+
+#### Status Colors
+
+| Status | Class |
+|--------|-------|
+| Error background | `bg-red-50 border-red-200 text-red-700` |
+| Like (active) | `fill-red-500 text-red-500` |
+| Delete action | `text-red-600 hover:text-red-700` |
+| Progress/info | `bg-black/5 border-black/10 text-black/70` |
+
+### Common Patterns
+
+```tsx
+// ❌ WRONG - Tailwind default grays
+className="bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100"
+
+// ✅ CORRECT - Project color system
+className="bg-black/5 text-black/70 border-black/10 hover:bg-black/5"
+
+// ❌ WRONG - Generic hover
+className="bg-black hover:bg-gray-800"
+
+// ✅ CORRECT - Opacity-based hover
+className="bg-black hover:bg-black/90"
+
+// ❌ WRONG - Tailwind font-serif
+className="font-serif"
+
+// ✅ CORRECT - Specific project font
+className="font-['Jeju_Myeongjo',serif]"
+className="font-[family-name:var(--font-jetbrains-mono)]"
+```
+
+**Rules:**
+- Do NOT use Tailwind gray scale (`gray-50`, `gray-100`, etc.) — use `black/N` opacity classes instead
+- Always add `transition-colors` to interactive elements
+- Cards use `rounded-xl`, pills/badges use `rounded-full`
+- Header buttons: `rounded-full border border-black/40 bg-[#e6e6e6] shadow-sm`
 
 ---
 

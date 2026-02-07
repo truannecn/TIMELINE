@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import SpiralTimeline from "@/app/components/spiral-timeline";
+import ThreadLeftSidebar from "@/app/components/thread-left-sidebar";
 
 interface Props {
   searchParams: Promise<{ tab?: string }>;
@@ -93,20 +95,33 @@ export default async function ProfilePage({ searchParams }: Props) {
     .select("*", { count: "exact", head: true })
     .eq("follower_id", user.id);
 
-  const { data: threads } = await supabase
-    .from("threads")
-    .select("id, name")
-    .order("created_at", { ascending: false })
-    .limit(3);
+  const { data: threads } = user
+    ? await supabase
+        .from("user_threads")
+        .select("thread:threads(id, name)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(6)
+    : { data: [] as { thread: { id: string; name: string | null } | null }[] };
 
   const displayWorks = activeTab === "saved" ? savedWorks : works;
   const postsCount = works?.length || 0;
   const displayName = profile?.display_name || "Anonymous Artist";
   const avatarInitial = (profile?.display_name || user.email || "A")[0]?.toUpperCase();
-  const threadItems = threads?.map((thread) => thread.name) || [];
+  const threadItems =
+    threads
+      ?.map((item) => item.thread)
+      .filter(
+        (thread): thread is { id: string; name: string | null } =>
+          Boolean(thread)
+      ) || [];
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <ThreadLeftSidebar
+          profile={profile}
+          threads={threadItems}
+          footer={
         <aside className="hidden lg:flex lg:flex-col lg:justify-between bg-[#d9d9d9] pr-4">
           <div className="pt-10">
             <div className="flex items-center gap-5 text-5xl text-black">
@@ -114,7 +129,7 @@ export default async function ProfilePage({ searchParams }: Props) {
               <span className="translate-y-1">—</span>
             </div>
             <div className="mt-8 space-y-3 text-sm text-black/80">
-              <p className="tracking-wide">following threads</p>
+              <p className="font-bold tracking-wide">following threads</p>
               {threadItems.length > 0 ? (
                 <ul className="space-y-2 text-black/80">
                   {threadItems.map((thread) => (
@@ -135,8 +150,8 @@ export default async function ProfilePage({ searchParams }: Props) {
               <span>⚙</span>
               <span>Settings</span>
             </Link>
-          </div>
-        </aside>
+          }
+        />
 
         <section className="rounded-[32px] bg-white p-8 shadow-sm">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
@@ -200,7 +215,6 @@ export default async function ProfilePage({ searchParams }: Props) {
             >
               timeline
             </Link>
-            <span className="text-black/40">reposts</span>
             <Link
               href="/profile?tab=saved"
               className={`border-b pb-1 ${
@@ -211,53 +225,46 @@ export default async function ProfilePage({ searchParams }: Props) {
             </Link>
           </div>
 
-          <div className="mt-8 rounded-[32px] bg-[#d9d9d9] p-6">
-            {displayWorks && displayWorks.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {displayWorks.map((work) => (
-                  <Link
-                    key={work.id}
-                    href={`/work/${work.id}`}
-                    className="aspect-square relative rounded-2xl overflow-hidden border border-black/10 group bg-white"
-                  >
-                    {work.image_url && (
-                      <img
-                        src={work.image_url}
-                        alt={work.title}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    )}
-                    {work.work_type === "essay" && (
-                      <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 text-white text-xs font-medium rounded">
-                        Essay
-                      </span>
-                    )}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                      <p className="text-white text-sm font-medium truncate">
-                        {work.title}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-sm text-black/60">
-                {activeTab === "saved" ? (
-                  <p>You haven&apos;t saved any works yet.</p>
-                ) : (
-                  <>
-                    <p className="mb-4">You haven&apos;t created any works yet.</p>
+          {/* Timeline or Grid based on active tab */}
+          {activeTab === "works" ? (
+            <SpiralTimeline works={displayWorks || []} />
+          ) : (
+            <div className="mt-8 rounded-[32px] bg-[#d9d9d9] p-6">
+              {displayWorks && displayWorks.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {displayWorks.map((work) => (
                     <Link
-                      href="/upload"
-                      className="inline-block rounded-full bg-[#cfcfcf] px-6 py-2 text-sm"
+                      key={work.id}
+                      href={`/work/${work.id}`}
+                      className="aspect-square relative rounded-2xl overflow-hidden border border-black/10 group bg-white"
                     >
-                      Create Your First Work
+                      {work.image_url && (
+                        <img
+                          src={work.image_url}
+                          alt={work.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      )}
+                      {work.work_type === "essay" && (
+                        <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 text-white text-xs font-medium rounded">
+                          Essay
+                        </span>
+                      )}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                        <p className="text-white text-sm font-medium truncate">
+                          {work.title}
+                        </p>
+                      </div>
                     </Link>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-sm text-black/60">
+                  <p>You haven&apos;t saved any works yet.</p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
     </div>
   );

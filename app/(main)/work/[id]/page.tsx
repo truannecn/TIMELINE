@@ -5,6 +5,7 @@ import { DeleteButton } from "./delete-button";
 import { BookmarkButton } from "./bookmark-button";
 import { CommentsSection } from "./comments-section";
 import { Avatar } from "@/components/avatar";
+import { VersionHistorySection } from "./version-history-section";
 import ImageCarousel from "@/app/components/image-carousel";
 
 interface Props {
@@ -42,7 +43,7 @@ export default async function WorkPage({ params }: Props) {
 
   const isOwner = user?.id === work.author_id;
 
-  // Fetch bookmark status and comments in parallel (only if user is logged in)
+  // Fetch bookmark status, comments, and versions in parallel
   let isBookmarked = false;
   let comments: Array<{
     id: string;
@@ -57,29 +58,38 @@ export default async function WorkPage({ params }: Props) {
     };
   }> = [];
 
-  if (user) {
-    const [bookmarkResult, commentsResult] = await Promise.all([
-      supabase
-        .from("bookmarks")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .eq("work_id", id)
-        .maybeSingle(),
-      supabase
-        .from("work_comments")
-        .select(
-          `
+  const [bookmarkResult, commentsResult, versionsResult] = await Promise.all([
+    user
+      ? supabase
+          .from("bookmarks")
+          .select("user_id")
+          .eq("user_id", user.id)
+          .eq("work_id", id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase
+          .from("work_comments")
+          .select(
+            `
           id,
           body,
           created_at,
           author_id,
           author:profiles!work_comments_author_id_fkey(id, username, display_name, avatar_url)
         `
-        )
-        .eq("work_id", id)
-        .order("created_at", { ascending: false }),
-    ]);
+          )
+          .eq("work_id", id)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("work_versions")
+      .select("*")
+      .eq("work_id", id)
+      .order("version_number", { ascending: true }),
+  ]);
 
+  if (user) {
     isBookmarked = !!bookmarkResult.data;
 
     if (commentsResult.data) {
@@ -89,6 +99,8 @@ export default async function WorkPage({ params }: Props) {
       }));
     }
   }
+
+  const versions = versionsResult.data || [];
 
   // Format date
   const publishedDate = new Date(work.created_at).toLocaleDateString("en-US", {
@@ -202,6 +214,14 @@ export default async function WorkPage({ params }: Props) {
           ))}
         </article>
       )}
+
+      {/* Version History Section */}
+      <VersionHistorySection
+        workId={work.id}
+        workType={work.work_type}
+        versions={versions}
+        isOwner={isOwner}
+      />
 
       {/* Comments section (only for logged-in users) */}
       {user && (

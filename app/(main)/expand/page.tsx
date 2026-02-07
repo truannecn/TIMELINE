@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import ThreadLeftSidebar from "@/app/components/thread-left-sidebar";
 
 export default async function ExpandPage(): Promise<JSX.Element> {
   const supabase = await createClient();
@@ -12,7 +13,7 @@ export default async function ExpandPage(): Promise<JSX.Element> {
   const { data: currentProfile } = user
     ? await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, bio")
         .eq("id", user.id)
         .single()
     : { data: null };
@@ -20,8 +21,9 @@ export default async function ExpandPage(): Promise<JSX.Element> {
   // Get following threads
   const { data: followingThreads } = user
     ? await supabase
-        .from("threads")
-        .select("id, name")
+        .from("user_threads")
+        .select("thread:threads(id, name)")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(6)
     : { data: null };
@@ -63,12 +65,13 @@ export default async function ExpandPage(): Promise<JSX.Element> {
     }))
     .sort((a, b) => b.likeCount - a.likeCount);
 
-  const displayName =
-    currentProfile?.display_name || currentProfile?.username || "guest";
-  const avatarLetter = displayName.charAt(0).toUpperCase();
-
   const threadItems =
-    followingThreads?.map((t) => t.name?.trim()).filter(Boolean) || [];
+    followingThreads
+      ?.map((t) => t.thread)
+      .filter(
+        (thread): thread is { id: string; name: string | null } =>
+          Boolean(thread)
+      ) || [];
 
   // Assign varying heights for masonry effect
   const heights = [240, 364, 488, 240, 364, 240, 488, 240, 364];
@@ -76,55 +79,7 @@ export default async function ExpandPage(): Promise<JSX.Element> {
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)]">
       {/* Left sidebar */}
-      <aside className="hidden lg:flex lg:flex-col lg:gap-6">
-        <div className="rounded-2xl bg-[#b0b0b0] p-3 shadow-sm">
-          <div className="relative overflow-hidden rounded-xl bg-white">
-            <div className="h-20 bg-slate-400" />
-            <div className="h-20 bg-slate-300" />
-            <div className="absolute left-1/2 top-20 -translate-x-1/2 -translate-y-1/2">
-              {currentProfile?.avatar_url ? (
-                <img
-                  src={currentProfile.avatar_url}
-                  alt={displayName}
-                  className="h-24 w-24 rounded-full border-4 border-white object-cover shadow-md"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="h-24 w-24 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center text-3xl text-slate-600 shadow-md">
-                  {avatarLetter}
-                </div>
-              )}
-            </div>
-            <div className="flex justify-center pb-4 pt-16">
-              {currentProfile?.username ? (
-                <Link
-                  href={`/${currentProfile.username}`}
-                  className="rounded-full bg-slate-200 px-8 py-2 text-sm shadow-sm hover:bg-slate-300 transition-colors"
-                >
-                  portfolio
-                </Link>
-              ) : (
-                <span className="rounded-full bg-slate-200 px-8 py-2 text-sm shadow-sm">
-                  portfolio
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 text-sm">
-          <p className="text-black/70">following threads</p>
-          {threadItems.length > 0 ? (
-            <ul className="space-y-2">
-              {threadItems.map((item) => (
-                <li key={item}>*-{item}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-black/50">no threads yet</p>
-          )}
-        </div>
-      </aside>
+      <ThreadLeftSidebar profile={currentProfile} threads={threadItems} />
 
       {/* Main content */}
       <div>

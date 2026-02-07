@@ -56,12 +56,35 @@ export interface Work {
   created_at: string;
   updated_at: string;
   likes_count: number;
+  is_liked?: boolean; // Whether current user has liked this work
   comments_count: number;
   primary_thread?: {
     id: string;
     name: string;
     description: string | null;
   } | null;
+}
+
+export interface WorkVersion {
+  id: string;
+  work_id: string;
+  version_number: number;
+  title: string;
+  notes: string | null;
+  // Content fields
+  image_path: string | null;
+  image_url: string | null;
+  width: number | null;
+  height: number | null;
+  content: string | null;
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkWithVersions extends Work {
+  versions?: WorkVersion[];
+  version_count?: number;
 }
 
 // AI Detection types
