@@ -7,6 +7,25 @@ interface Props {
   searchParams: Promise<{ tab?: string }>;
 }
 
+type Work = {
+  id: string;
+  title: string | null;
+  work_type: string | null;
+  image_url: string | null;
+  created_at: string;
+  primary_interest?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  author?: {
+    id: string;
+    username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
+};
+
 export default async function ProfilePage({ searchParams }: Props) {
   const { tab } = await searchParams;
   const activeTab = tab === "saved" ? "saved" : "works";
@@ -61,8 +80,8 @@ export default async function ProfilePage({ searchParams }: Props) {
 
   // Extract works from bookmarks
   const savedWorks = bookmarkedWorks
-    ?.map((b) => b.work)
-    .filter((w): w is NonNullable<typeof w> => w !== null);
+    ?.map((b) => b.work as unknown as Work | null)
+    .filter((w): w is Work => w !== null);
 
   // Get follower/following counts
   const { count: followersCount } = await supabase
