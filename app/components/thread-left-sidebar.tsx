@@ -35,7 +35,7 @@ export default function ThreadLeftSidebar({
               {threads.map((thread) => (
                 <li key={thread.id}>
                   {thread.name ? (
-                    <Link href={`/threads/${thread.id}`} className="hover:text-black">
+                    <Link href={`/thread/${thread.id}`} className="hover:text-black transition-colors">
                       *-{thread.name}
                     </Link>
                   ) : (

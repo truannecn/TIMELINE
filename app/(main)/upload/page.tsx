@@ -22,12 +22,17 @@ export default function NewWorkPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
+  const typeParam = searchParams.get('type');
+  const [workType, setWorkType] = useState<"image" | "essay">(
+    typeParam === 'essay' ? 'essay' : 'image'
+  );
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [filters, setFilters] = useState<ImageFilters[]>([]);
   const [showEditor, setShowEditor] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [content, setContent] = useState("");
   const [uploading, setUploading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,9 +138,21 @@ export default function NewWorkPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (files.length === 0) {
-      setError("Please select at least one image");
-      return;
+    // Validation based on work type
+    if (workType === "image") {
+      if (files.length === 0) {
+        setError("Please select at least one image");
+        return;
+      }
+    } else {
+      if (!content.trim()) {
+        setError("Please enter your essay content");
+        return;
+      }
+      if (content.trim().length < 100) {
+        setError("Essays must be at least 100 characters");
+        return;
+      }
     }
 
     if (!title.trim()) {
@@ -143,19 +160,8 @@ export default function NewWorkPage() {
       return;
     }
 
-    if (workType === "essay" && !content.trim()) {
-      setError("Please enter your essay content");
-      return;
-    }
-
-    if (workType === "essay" && content.trim().length < 100) {
-      setError("Essays must be at least 100 characters");
-      return;
-    }
-
     if (selectedThreads.size === 0) {
       setError("Please select at least one category");
-
       return;
     }
 
@@ -179,28 +185,55 @@ export default function NewWorkPage() {
         return;
       }
 
-      // Validate all images with AI detection
       setValidating(true);
-      for (let i = 0; i < files.length; i++) {
-        const validateForm = new FormData();
-        validateForm.append("file", files[i]);
 
-        const validateResponse = await fetch("/api/validate-image", {
+      // Validate based on work type
+      if (workType === "image") {
+        // Validate all images with AI detection
+        for (let i = 0; i < files.length; i++) {
+          const validateForm = new FormData();
+          validateForm.append("file", files[i]);
+
+          const validateResponse = await fetch("/api/validate-image", {
+            method: "POST",
+            body: validateForm,
+          });
+
+          const validateResult = await validateResponse.json();
+
+          if (!validateResponse.ok) {
+            setValidating(false);
+            throw new Error(validateResult.error || `Failed to validate image ${i + 1}`);
+          }
+
+          if (!validateResult.passed) {
+            setValidating(false);
+            setError(
+              `Image ${i + 1} appears to be AI-generated (confidence: ${Math.round(validateResult.score * 100)}%). Timeline only accepts human-created artwork.`
+            );
+            setUploading(false);
+            return;
+          }
+        }
+      } else {
+        // Validate essay text with AI detection
+        const validateResponse = await fetch("/api/validate-text", {
           method: "POST",
-          body: validateForm,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: content.trim() }),
         });
 
         const validateResult = await validateResponse.json();
 
         if (!validateResponse.ok) {
           setValidating(false);
-          throw new Error(validateResult.error || `Failed to validate image ${i + 1}`);
+          throw new Error(validateResult.error || "Failed to validate text");
         }
 
         if (!validateResult.passed) {
           setValidating(false);
           setError(
-            `Image ${i + 1} appears to be AI-generated (confidence: ${Math.round(validateResult.score * 100)}%). Artfolio only accepts human-created artwork.`
+            `Text appears to be AI-generated (confidence: ${Math.round(validateResult.score * 100)}%). Timeline only accepts human-written content.`
           );
           setUploading(false);
           return;
@@ -209,64 +242,79 @@ export default function NewWorkPage() {
 
       setValidating(false);
 
-      // Apply filters and upload all images
-      const uploadedImages: Array<{
+      let uploadedImages: Array<{
+        path: string;
+        url: string;
+        width: number;
+        height: number;
+      }> = [];
+      let additionalImages: Array<{
         path: string;
         url: string;
         width: number;
         height: number;
       }> = [];
 
-      for (let i = 0; i < files.length; i++) {
-        // Apply filters to the file
-        const filteredFile = await applyFiltersToFile(files[i], filters[i]);
+      // Apply filters and upload images only if work type is image
+      if (workType === "image") {
+        for (let i = 0; i < files.length; i++) {
+          // Apply filters to the file
+          const filteredFile = await applyFiltersToFile(files[i], filters[i]);
 
-        // Upload the filtered image
-        let uploadResult;
-        try {
-          uploadResult = await uploadFileWithPresignedUrl(filteredFile);
-        } catch (uploadError) {
-          throw new Error(
-            uploadError instanceof Error
-              ? uploadError.message
-              : `Failed to upload image ${i + 1}`
+          // Upload the filtered image
+          let uploadResult;
+          try {
+            uploadResult = await uploadFileWithPresignedUrl(filteredFile);
+          } catch (uploadError) {
+            throw new Error(
+              uploadError instanceof Error
+                ? uploadError.message
+                : `Failed to upload image ${i + 1}`
+            );
+          }
+
+          // Get image dimensions
+          const img = new Image();
+          img.src = previews[i];
+          const dimensions = await new Promise<{ width: number; height: number }>(
+            (resolve) => {
+              img.onload = () => {
+                resolve({ width: img.naturalWidth, height: img.naturalHeight });
+              };
+            }
           );
+
+          uploadedImages.push({
+            path: uploadResult.path,
+            url: uploadResult.url,
+            width: dimensions.width,
+            height: dimensions.height,
+          });
         }
 
-        // Get image dimensions
-        const img = new Image();
-        img.src = previews[i];
-        const dimensions = await new Promise<{ width: number; height: number }>(
-          (resolve) => {
-            img.onload = () => {
-              resolve({ width: img.naturalWidth, height: img.naturalHeight });
-            };
-          }
-        );
-
-        uploadedImages.push({
-          path: uploadResult.path,
-          url: uploadResult.url,
-          width: dimensions.width,
-          height: dimensions.height,
-        });
+        // First image is the cover image
+        additionalImages = uploadedImages.slice(1);
       }
-
-      // First image is the cover image
-      const coverImage = uploadedImages[0];
-      const additionalImages = uploadedImages.slice(1);
 
       // Insert into works table
       const workData: Record<string, unknown> = {
         author_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
-        image_path: coverImage.path,
-        image_url: coverImage.url,
-        width: coverImage.width,
-        height: coverImage.height,
-        work_type: "image",
+        work_type: workType,
       };
+
+      // Add image-specific fields if work type is image
+      if (workType === "image" && uploadedImages.length > 0) {
+        const coverImage = uploadedImages[0];
+        workData.image_path = coverImage.path;
+        workData.image_url = coverImage.url;
+        workData.width = coverImage.width;
+        workData.height = coverImage.height;
+      } else if (workType === "essay") {
+        // Add content for essay
+        workData.content = content.trim();
+      }
 
       const { data: insertedWork, error: insertError } = await supabase
         .from("works")
@@ -366,20 +414,52 @@ export default function NewWorkPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Upload Artwork</h1>
+      <h1 className="text-2xl font-bold mb-6">Create Post</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Image upload area */}
+        {/* Work type toggle */}
         <div>
-          <label className="block text-sm font-medium mb-2">Artwork</label>
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              previews.length > 0
-                ? "border-border"
-                : "border-muted-foreground/25 hover:border-muted-foreground/50"
-            }`}
-          >
+          <label className="block text-sm font-medium mb-2">Post Type</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setWorkType("image")}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                workType === "image"
+                  ? "bg-black text-white"
+                  : "bg-black/5 text-black/70 hover:bg-black/10"
+              }`}
+            >
+              Image
+            </button>
+            <button
+              type="button"
+              onClick={() => setWorkType("essay")}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                workType === "essay"
+                  ? "bg-black text-white"
+                  : "bg-black/5 text-black/70 hover:bg-black/10"
+              }`}
+            >
+              Written
+            </button>
+          </div>
+        </div>
+
+        {/* Conditional content based on work type */}
+        {workType === "image" ? (
+          <>
+            {/* Image upload area */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Artwork</label>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  previews.length > 0
+                    ? "border-border"
+                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                }`}
+              >
             <input
               ref={fileInputRef}
               type="file"
@@ -447,6 +527,28 @@ export default function NewWorkPage() {
             onDone={() => setShowEditor(false)}
             onBack={() => setShowEditor(false)}
           />
+        )}
+          </>
+        ) : (
+          <>
+            {/* Essay content area */}
+            <div>
+              <label htmlFor="content" className="block text-sm font-medium mb-2">
+                Content
+              </label>
+              <textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Write your essay here... (minimum 100 characters)"
+                rows={12}
+                className="w-full px-4 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-foreground/20 resize-none font-['Inria_Serif',serif]"
+              />
+              <p className="text-xs text-muted-foreground mt-1 text-right">
+                {content.length} characters {content.length < 100 && `(${100 - content.length} more needed)`}
+              </p>
+            </div>
+          </>
         )}
 
         {/* Title */}
@@ -538,14 +640,20 @@ export default function NewWorkPage() {
         {/* Submit button */}
         <button
           type="submit"
-          disabled={uploading || validating || !file || selectedThreads.size === 0}
+          disabled={
+            uploading ||
+            validating ||
+            (workType === "image" && files.length === 0) ||
+            (workType === "essay" && content.trim().length < 100) ||
+            selectedThreads.size === 0
+          }
           className="w-full py-3 bg-foreground text-background rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {validating
             ? "Checking for AI content..."
             : uploading
-              ? "Uploading..."
-              : "Upload Artwork"}
+              ? workType === "image" ? "Uploading..." : "Publishing..."
+              : workType === "image" ? "Upload Artwork" : "Publish Essay"}
         </button>
       </form>
     </div>

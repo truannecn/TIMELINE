@@ -24,7 +24,7 @@ function RegisterContent(): JSX.Element {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#768594] to-[#6d5d79] px-4 overflow-hidden">
       {/* Logo */}
-      <div className="mb-6 relative w-[180px] h-[180px]">
+      <div className="mb-6 relative w-[180px] h-[180px] pointer-events-none">
         <svg
           width="180"
           height="180"

@@ -201,7 +201,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="mx-auto grid w-full max-w-none grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[200px_minmax(0,1fr)_360px] lg:pl-3 lg:pr-6">
+      <div className="mx-auto grid w-full max-w-none grid-cols-1 gap-6 px-5 py-6 lg:grid-cols-[200px_minmax(0,1fr)_360px] lg:pl-6 lg:pr-6">
       <ThreadLeftSidebar
         profile={currentProfile}
         threads={(threadLinks || [])

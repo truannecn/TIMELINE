@@ -22,7 +22,6 @@ type Work = {
   primary_thread?: {
     id: string;
     name: string;
-    slug: string;
   } | null;
   likeCount: number;
   isLiked: boolean;

@@ -118,27 +118,10 @@ export default async function ProfilePage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <aside className="hidden lg:flex lg:flex-col lg:justify-between bg-[#d9d9d9] pr-4">
-        <div className="pt-10">
-          <div className="flex items-center gap-5 text-5xl text-black">
-            <span>✱</span>
-            <span className="translate-y-1">—</span>
-          </div>
-          <div className="mt-8 space-y-3 text-sm text-black/80">
-            <p className="tracking-wide">following threads</p>
-            {threadItems.length > 0 ? (
-              <ul className="space-y-2 text-black/80">
-                {threadItems.map((thread) => (
-                  <li key={thread.id}>*-{thread.name}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-black/50">no threads yet</p>
-            )}
-          </div>
-        </div>
-
-        <div className="pb-10">
+      <ThreadLeftSidebar
+        profile={profile}
+        threads={threadItems}
+        footer={
           <Link
             href="/profile/edit"
             className="inline-flex items-center gap-2 rounded-full bg-[#bcbcbc] px-4 py-2 text-xs shadow-sm"
@@ -146,9 +129,8 @@ export default async function ProfilePage({ searchParams }: Props) {
             <span>⚙</span>
             <span>Settings</span>
           </Link>
-        </div>
-      </aside>
-
+        }
+      />
         <section className="rounded-[32px] bg-white p-8 shadow-sm">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
             <div className="h-28 w-28 rounded-full bg-[#d9d9d9] flex items-center justify-center text-4xl text-black/70">

@@ -38,51 +38,38 @@ export default function CreateDropdown() {
   }
 
   return (
-    <>
-      <div ref={dropdownRef} className="relative">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 rounded-full border border-black/40 bg-[#e6e6e6] px-4 py-1.5 text-sm shadow-sm hover:bg-[#dcdcdc] transition-colors"
-        >
-          <span className="text-base">+</span>
-          <span>create</span>
-        </button>
+    <div ref={dropdownRef} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 rounded-full bg-[#725589] px-4 py-1.5 text-sm text-white shadow-sm hover:bg-[#9F93A7] transition-colors"
+      >
+        <span className="text-base">+</span>
+        <span>create</span>
+      </button>
 
-        {isOpen && (
-          <div className="absolute top-full mt-2 left-0 bg-white border border-black/20 rounded-lg shadow-lg z-50 overflow-hidden min-w-[140px]">
-            <Link
-              href="/create-thread"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm border-b border-black/10 hover:bg-black/5 transition-colors"
-            >
-              <span>✱</span>
-              <span>thread</span>
-            </Link>
-            <button
-              onClick={handlePostClick}
-              className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm hover:bg-black/5 transition-colors"
-            >
-              <span>@</span>
-              <span>post</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Post type modal */}
-      {showPostModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          onClick={() => setShowPostModal(false)}
-        >
-          {/* Faded background overlay */}
-          <div className="absolute inset-0 bg-[#484545]/50" />
-
-          {/* Modal */}
-          <div
-            className="relative bg-white rounded-2xl shadow-xl p-10 min-w-[360px] font-mono"
-            onClick={(e) => e.stopPropagation()}
+      {isOpen && (
+        <div className="absolute top-full mt-2 left-0 bg-white border border-black/20 rounded-lg shadow-lg z-50 overflow-hidden min-w-[140px]">
+          <Link
+            href="/create-thread"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm border-b border-black/10 hover:bg-black/5 transition-colors"
           >
+            <span>✱</span>
+            <span>thread</span>
+          </Link>
+          <button
+            onClick={handlePostClick}
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-left text-sm hover:bg-black/5 transition-colors"
+          >
+            <span>📝</span>
+            <span>post</span>
+          </button>
+        </div>
+      )}
+
+      {showPostModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowPostModal(false)}>
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl text-center mb-2">create a post</h2>
             <p className="text-sm text-black/50 text-center mb-8">
               what would you like to share?
@@ -108,6 +95,6 @@ export default function CreateDropdown() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -39,7 +39,7 @@ export default function HeaderSearch() {
   };
 
   return (
-    <div className="flex items-center gap-3 rounded-full bg-white px-4 py-2 shadow-sm">
+    <div className="flex items-center gap-3 rounded-full bg-white border border-black/20 px-4 py-2 shadow-sm">
       <input
         type="text"
         placeholder="search"

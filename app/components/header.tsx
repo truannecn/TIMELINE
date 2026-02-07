@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import CreateDropdown from "./create-dropdown";
 import HeaderSearch from "./header-search";
+import NavButtons from "./nav-buttons";
 import NotificationBell from "./notification-bell";
 import { getNotifications } from "@/app/(main)/notifications/actions";
 import logo from "@/app/icon.svg";
@@ -32,35 +33,16 @@ export default async function Header(): Promise<JSX.Element> {
   const avatarLetter = displayName.charAt(0).toUpperCase();
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 bg-[#8C7B9A] border-b border-black/20 px-6 py-4 font-mono">
+    <header className="flex flex-wrap items-center justify-between gap-4 bg-white border-b border-black/20 px-6 py-4 font-mono">
       <div className="flex items-center gap-6">
-        <Link href="/explore" className="flex items-center">
-          <Image
-            src={logo}
-            alt="timeline"
-            width={66}
-            height={33}
-            priority
-            className="h-8 w-auto"
-          />
+        <Link href="/explore" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+          <span className="text-4xl leading-none">✱</span>
+          <span className="text-4xl leading-none">—</span>
         </Link>
         <CreateDropdown />
       </div>
 
-      <div className="flex items-center rounded-full bg-white px-2 py-1 shadow-sm">
-        <Link
-          href="/explore"
-          className="rounded-full px-5 py-1 text-sm hover:bg-black/5 transition-colors"
-        >
-          explore
-        </Link>
-        <Link
-          href="/expand"
-          className="rounded-full px-5 py-1 text-sm text-black/60 hover:bg-black/5 transition-colors"
-        >
-          expand
-        </Link>
-      </div>
+      <NavButtons />
 
       <HeaderSearch />
 
@@ -74,7 +56,7 @@ export default async function Header(): Promise<JSX.Element> {
         {user && currentProfile?.username && (
           <Link
             href={`/${currentProfile.username}`}
-            className="rounded-full border border-black/40 bg-[#e6e6e6] px-4 py-1.5 text-sm shadow-sm hover:bg-[#dcdcdc] transition-colors"
+            className="rounded-full border border-black bg-black px-4 py-1.5 text-sm text-white shadow-sm hover:bg-black/90 transition-colors"
           >
             profile
           </Link>
