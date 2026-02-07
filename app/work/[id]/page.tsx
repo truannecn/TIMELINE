@@ -159,7 +159,7 @@ export default async function WorkPage({ params }: Props) {
         {/* Essay content */}
         {work.work_type === "essay" && work.content && (
           <article className="prose prose-neutral dark:prose-invert max-w-none">
-            {work.content.split("\n\n").map((paragraph, i) => (
+            {work.content.split("\n\n").map((paragraph: string, i: number) => (
               <p key={i} className="mb-4 leading-relaxed">
                 {paragraph}
               </p>
